@@ -1,7 +1,5 @@
 # HR Management System
 
-A complete HR Management System built with the MERN stack (MongoDB replaced with PostgreSQL).
-
 ## Tech Stack
 
 ### Backend
@@ -92,7 +90,7 @@ createdb hr_management
 npm run dev
 ```
 
-The server will start on `http://localhost:5000`
+The server will start on `http://localhost:5002`
 
 ### Frontend Setup
 
@@ -111,7 +109,7 @@ npm install
 npm run dev
 ```
 
-The frontend will start on `http://localhost:3000`
+The frontend will start on `http://localhost:5173`
 
 ## Creating Initial Admin User
 
