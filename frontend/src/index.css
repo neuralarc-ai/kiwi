@@ -1,0 +1,218 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 221 83% 53%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 221 83% 53%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+  
+  html {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    overflow-x: hidden;
+    max-width: 100vw;
+    position: relative;
+  }
+  
+  #root {
+    overflow-x: hidden;
+    max-width: 100vw;
+    position: relative;
+  }
+  
+  /* Prevent horizontal overflow */
+  * {
+    max-width: 100%;
+  }
+  
+  /* Mobile-specific fixes */
+  @media (max-width: 640px) {
+    html, body {
+      font-size: 14px;
+      overflow-x: hidden !important;
+      max-width: 100vw !important;
+      width: 100% !important;
+      position: relative;
+    }
+    
+    #root {
+      overflow-x: hidden !important;
+      max-width: 100vw !important;
+      width: 100% !important;
+      position: relative;
+    }
+    
+    /* Fix table overflow */
+    table {
+      font-size: 12px;
+      width: 100%;
+      max-width: 100%;
+    }
+    
+    /* Fix all containers - prevent horizontal overflow */
+    div, section, main, article, aside, header, footer, nav {
+      max-width: 100vw !important;
+      overflow-x: hidden !important;
+    }
+    
+    /* Fix overflow containers - allow scroll but contain it */
+    .overflow-x-auto {
+      max-width: 100vw !important;
+      width: 100% !important;
+    }
+    
+    /* Fix images */
+    img {
+      max-width: 100%;
+      height: auto;
+    }
+    
+    /* Fix any calc widths that might overflow */
+    [class*="w-\[calc"] {
+      max-width: 100vw !important;
+    }
+    
+    /* Better touch targets for mobile */
+    button, a, [role="button"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    
+    /* Sidebar menu items - better touch targets */
+    nav a {
+      min-height: 44px;
+    }
+    
+    /* Ensure sidebar doesn't interfere when closed on mobile */
+    aside.pointer-events-none {
+      pointer-events: none !important;
+    }
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/80 dark:bg-black/10 backdrop-blur-xl border border-gray-200 dark:border-white/10 shadow-sm;
+  }
+
+  .glass-strong {
+    @apply bg-white/90 dark:bg-black/20 backdrop-blur-2xl border border-gray-300 dark:border-white/20 shadow-md;
+  }
+
+  .neumorphism {
+    @apply bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900;
+    box-shadow: 
+      8px 8px 16px rgba(0, 0, 0, 0.1),
+      -8px -8px 16px rgba(255, 255, 255, 0.1);
+  }
+
+  .neumorphism-inset {
+    @apply bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900;
+    box-shadow: 
+      inset 8px 8px 16px rgba(0, 0, 0, 0.1),
+      inset -8px -8px 16px rgba(255, 255, 255, 0.1);
+  }
+
+  .skeleton {
+    @apply animate-pulse bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800;
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+  }
+
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600;
+  }
+
+  .glow-effect {
+    @apply relative;
+  }
+
+  .glow-effect::before {
+    content: '';
+    @apply absolute inset-0 rounded-lg opacity-0 transition-opacity duration-300;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, transparent 70%);
+    filter: blur(20px);
+  }
+
+  .glow-effect:hover::before {
+    @apply opacity-100;
+  }
+
+  .animate-blob {
+    animation: blob 7s infinite;
+  }
+
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+}
+
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
