@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { apiService } from '@/services/api'
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 interface DashboardStats {
   totalEmployees: number
@@ -508,34 +508,6 @@ export default function DashboardHome() {
   }
 
 
-  // Prepare pie chart data for today's attendance - prefer API stats, fallback to calculated todayStats
-  const pieChartData = useMemo(() => {
-    const presentValue = stats.todayPresent ?? todayStats.present ?? 0
-    const absentValue = stats.todayAbsent ?? todayStats.absent ?? 0
-    const lateValue = stats.todayLate ?? todayStats.late ?? 0
-    const onLeaveValue = stats.todayOnLeave ?? todayStats.on_leave ?? 0
-    
-    const data = [
-      { name: 'Present', value: presentValue, color: '#22c55e' },
-      { name: 'Absent', value: absentValue, color: '#ef4444' },
-      { name: 'Late', value: lateValue, color: '#eab308' },
-      { name: 'On Leave', value: onLeaveValue, color: '#3b82f6' }
-    ].filter(item => item.value > 0) // Only show categories with data
-    
-    console.log('📊 Pie chart data recalculated:', data)
-    console.log('📊 Using values:', { presentValue, absentValue, lateValue, onLeaveValue })
-    return data
-  }, [
-    stats.todayPresent, 
-    stats.todayAbsent, 
-    stats.todayLate, 
-    stats.todayOnLeave,
-    todayStats.present, 
-    todayStats.absent, 
-    todayStats.late, 
-    todayStats.on_leave, 
-    forceUpdate
-  ])
 
   // Force chart refresh when stats change (for pie chart and stat cards updates)
   useEffect(() => {
@@ -632,7 +604,7 @@ export default function DashboardHome() {
         ))}
       </div>
 
-      {/* Daily Attendance Graph */}
+      {/* Today's Attendance Pie Chart */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -679,53 +651,86 @@ export default function DashboardHome() {
           </CardHeader>
           <CardContent>
             {loadingChart ? (
-              <Skeleton className="h-64 w-full" />
-            ) : attendanceData.length === 0 ? (
-              <div className="h-64 flex items-center justify-center text-muted-foreground">
-                No attendance data available
+              <div className="h-[350px] flex items-center justify-center">
+                <Skeleton className="h-full w-full" />
               </div>
-            ) : pieChartData.length === 0 ? (
-              <div className="h-64 flex items-center justify-center text-muted-foreground">
-                No attendance data for today
+            ) : !attendanceData || attendanceData.length === 0 ? (
+              <div className="h-[350px] flex items-center justify-center text-muted-foreground">
+                <div className="text-center">
+                  <p className="text-sm">No attendance data available</p>
+                  <p className="text-xs mt-2">Mark attendance to see the graph</p>
+                </div>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={280} className="sm:h-[350px]" key={`pie-${chartRefreshKey}-${forceUpdate}-${pieChartData.length}`}>
-                <PieChart key={`piechart-${chartRefreshKey}-${forceUpdate}`}>
-                  <Pie
-                    key={`pie-${chartRefreshKey}-${forceUpdate}`}
-                    data={pieChartData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent, value }) => `${name}: ${value} (${percent ? (percent * 100).toFixed(0) : 0}%)`}
-                    outerRadius={120}
-                    innerRadius={40}
-                    fill="#8884d8"
-                    dataKey="value"
-                    animationBegin={0}
-                    animationDuration={800}
-                    isAnimationActive={true}
+              <div className="w-full" style={{ minHeight: '350px' }}>
+                <ResponsiveContainer width="100%" height={350} key={`attendance-chart-${chartRefreshKey}-${forceUpdate}`}>
+                  <LineChart 
+                    data={attendanceData}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                   >
-                    {pieChartData.map((entry, index) => (
-                      <Cell key={`cell-${index}-${entry.value}-${chartRefreshKey}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'rgba(0,0,0,0.9)', 
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      borderRadius: '8px',
-                      color: '#fff'
-                    }}
-                    formatter={(value: any, name: string) => [`${value} employees`, name]}
-                  />
-                  <Legend 
-                    verticalAlign="bottom" 
-                    height={36}
-                    formatter={(value: string) => <span style={{ color: '#fff' }}>{value}</span>}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <XAxis 
+                      dataKey="dateDisplay" 
+                      stroke="#888"
+                      style={{ fontSize: '12px' }}
+                      tick={{ fill: '#888' }}
+                    />
+                    <YAxis 
+                      stroke="#888"
+                      style={{ fontSize: '12px' }}
+                      tick={{ fill: '#888' }}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'rgba(0,0,0,0.9)', 
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '8px',
+                        color: '#fff'
+                      }}
+                      formatter={(value: any, name: string) => [`${value} employees`, name]}
+                    />
+                    <Legend 
+                      formatter={(value: string) => <span style={{ color: '#fff' }}>{value}</span>}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="present" 
+                      stroke="#22c55e" 
+                      strokeWidth={2}
+                      name="Present"
+                      dot={{ fill: '#22c55e', r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="absent" 
+                      stroke="#ef4444" 
+                      strokeWidth={2}
+                      name="Absent"
+                      dot={{ fill: '#ef4444', r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="late" 
+                      stroke="#eab308" 
+                      strokeWidth={2}
+                      name="Late"
+                      dot={{ fill: '#eab308', r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="on_leave" 
+                      stroke="#3b82f6" 
+                      strokeWidth={2}
+                      name="On Leave"
+                      dot={{ fill: '#3b82f6', r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             )}
           </CardContent>
         </Card>
