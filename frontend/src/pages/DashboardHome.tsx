@@ -1,13 +1,21 @@
 import { motion } from 'framer-motion'
-import { Users, Briefcase, CalendarCheck, Calendar, BarChart3, RefreshCw } from 'lucide-react'
+import { Users, Briefcase, CalendarCheck, Calendar, BarChart3 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { apiService } from '@/services/api'
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { Pie } from 'react-chartjs-2'
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+} from 'chart.js'
+
+// Register Chart.js components
+ChartJS.register(ArcElement, Tooltip, Legend)
 
 interface DashboardStats {
   totalEmployees: number
@@ -48,95 +56,7 @@ export default function DashboardHome() {
   })
   const [upcomingLeaves, setUpcomingLeaves] = useState<UpcomingLeave[]>([])
   const [loadingLeaves, setLoadingLeaves] = useState(true)
-  const [attendanceData, setAttendanceData] = useState<any[]>([])
-  const [loadingChart, setLoadingChart] = useState(true)
-  const [chartRefreshKey, setChartRefreshKey] = useState(0)
   const [forceUpdate, setForceUpdate] = useState(0) // Force component re-render
-
-  const fetchAttendanceStats = useCallback(async () => {
-    if (!token) return
-
-    try {
-      setLoadingChart(true)
-      console.log('📊 Fetching attendance stats...')
-      // Add cache-busting timestamp to ensure fresh data
-      const data = await apiService.getDailyAttendanceStats(token, 7)
-      console.log('📊 Attendance stats received:', data)
-      
-      // Normalize date format and keep original for calculations, add formatted date for display
-      const formatted = data.map((item: any) => {
-        // Normalize date to YYYY-MM-DD format - handle various date formats
-        let dateStr = item.date
-        if (item.date) {
-          try {
-            // If it's already a string in YYYY-MM-DD format, use it directly
-            if (typeof item.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(item.date)) {
-              dateStr = item.date
-            } else {
-              // Otherwise, parse it
-              const dateObj = new Date(item.date)
-              dateStr = dateObj.toISOString().split('T')[0]
-            }
-          } catch (e) {
-            console.error('Error parsing date:', item.date, e)
-            dateStr = item.date
-          }
-        }
-        return {
-          ...item,
-          date: dateStr,
-          dateDisplay: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          dateOriginal: dateStr
-        }
-      })
-      console.log('📊 Formatted attendance data:', formatted)
-      console.log('📊 Setting attendanceData state...')
-      // Force state update by creating completely new array with new object references
-      const newData = formatted.map(item => ({ ...item, _timestamp: Date.now() }))
-      
-      // Use functional update to ensure React sees the change
-      setAttendanceData(() => {
-        console.log('🔄 Setting new attendanceData, length:', newData.length)
-        return newData
-      })
-      
-      // Force chart and component refresh - use setTimeout to ensure state is set first
-      setTimeout(() => {
-        setChartRefreshKey(prev => {
-          const newKey = prev + 1
-          console.log('🔄 Chart refresh key updated to:', newKey)
-          return newKey
-        })
-        
-        // Force component re-render
-        setForceUpdate(prev => {
-          const newUpdate = prev + 1
-          console.log('🔄 Force update triggered:', newUpdate)
-          return newUpdate
-        })
-        console.log('🔄 State updated, triggering re-render...')
-      }, 100)
-      
-      // Force a small delay then check if today's data is in the results
-      setTimeout(() => {
-        const today = new Date().toISOString().split('T')[0]
-        const todayInData = formatted.find((item: any) => {
-          const itemDate = item.dateOriginal || item.date
-          return itemDate === today
-        })
-        if (todayInData) {
-          console.log('✅ Today\'s data found in fetched data:', todayInData)
-        } else {
-          console.warn('⚠️ Today\'s data NOT found in fetched data. Today is:', today)
-          console.log('📊 Available dates:', formatted.map((item: any) => item.dateOriginal || item.date))
-        }
-      }, 100)
-    } catch (error) {
-      console.error('❌ Error fetching attendance stats:', error)
-    } finally {
-      setLoadingChart(false)
-    }
-  }, [token])
 
   const fetchUpcomingLeaves = useCallback(async () => {
     if (!token) return
@@ -201,149 +121,40 @@ export default function DashboardHome() {
 
   useEffect(() => {
     // Initial load
-    refreshDashboardData()
-    fetchUpcomingLeaves()
-    fetchAttendanceStats()
+    const loadInitialData = async () => {
+      try {
+        await Promise.all([
+          refreshDashboardData(),
+          fetchUpcomingLeaves()
+        ])
+      } catch (error) {
+        console.error('Error loading initial data:', error)
+      }
+    }
+    
+    loadInitialData()
+    
+    // Set up auto-refresh for daily attendance data (every 30 seconds)
+    const attendanceInterval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        console.log('🔄 Auto-refreshing dashboard data...')
+        refreshDashboardData()
+      }
+    }, 30000) // Refresh every 30 seconds
     
     // Expose refresh function globally for testing
     ;(window as any).refreshDashboard = async () => {
       console.log('🔄 Global refresh function called')
       await Promise.all([
-        fetchAttendanceStats(),
         refreshDashboardData(),
         fetchUpcomingLeaves()
       ])
     }
-    
-    // Set up frequent polling (refresh every 3 seconds when page is visible)
-    const pollInterval = setInterval(() => {
-      if (document.visibilityState === 'visible' && !loadingChart) {
-        console.log('🔄 Polling: Refreshing attendance stats...')
-        fetchAttendanceStats()
-      }
-    }, 3000) // Poll every 3 seconds for faster updates
-
-    // Listen for attendance updates from other pages
-    const handleAttendanceUpdate = async (event: any) => {
-      const detail = event?.detail || {}
-      console.log('🔄 Attendance updated event received:', detail)
-      console.log('🔄 Refreshing dashboard...')
-      try {
-        // Wait for database commit
-        await new Promise(resolve => setTimeout(resolve, 600))
-        
-        // Refresh attendance stats (most critical)
-        console.log('📊 Fetching fresh attendance stats...')
-        await fetchAttendanceStats()
-        
-        // Wait a bit then refresh again to ensure we get the latest data
-        await new Promise(resolve => setTimeout(resolve, 400))
-        await fetchAttendanceStats()
-        
-        // Refresh other data
-        console.log('📊 Refreshing other dashboard data...')
-        await Promise.all([
-          refreshDashboardData(),
-          fetchUpcomingLeaves()
-        ])
-        
-        console.log('✅ Dashboard fully refreshed after attendance update')
-      } catch (error) {
-        console.error('❌ Error refreshing dashboard:', error)
-      }
-    }
-
-    // Add event listener on window
-    window.addEventListener('attendanceUpdated', handleAttendanceUpdate)
-    // Also add on document as backup
-    document.addEventListener('attendanceUpdated', handleAttendanceUpdate)
-    
-    // Also listen for localStorage events (works across tabs)
-    const handleStorageChange = async (e: StorageEvent) => {
-      if (e.key === 'attendanceUpdated' && e.newValue) {
-        try {
-          const data = JSON.parse(e.newValue)
-          console.log('🔄 LocalStorage attendance update received:', data)
-          await handleAttendanceUpdate({ detail: data } as any)
-        } catch (error) {
-          console.error('Error parsing storage event:', error)
-        }
-      }
-    }
-    window.addEventListener('storage', handleStorageChange)
-    
-    // Also check localStorage on mount/visibility (for same-tab updates)
-    const checkLocalStorage = async () => {
-      const stored = localStorage.getItem('attendanceUpdated')
-      if (stored) {
-        try {
-          const data = JSON.parse(stored)
-          // Only refresh if data is recent (within last 5 seconds)
-          if (data.timestamp && Date.now() - data.timestamp < 5000) {
-            console.log('🔄 Found recent attendance update in localStorage, refreshing...')
-            await handleAttendanceUpdate({ detail: data } as any)
-          }
-        } catch (error) {
-          console.error('Error parsing localStorage:', error)
-        }
-      }
-    }
-    
-    // Check immediately and on visibility change
-    checkLocalStorage()
-    
-    // Also refresh when page becomes visible (user navigates back to dashboard)
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible') {
-        console.log('👁️ Page visible, refreshing all data...')
-        // Immediately refresh all data when page becomes visible
-        await Promise.all([
-          refreshDashboardData(),
-          fetchUpcomingLeaves(),
-          fetchAttendanceStats()
-        ])
-        // Check localStorage for recent updates
-        await checkLocalStorage()
-      }
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    
-    // Also listen for focus events (when user switches back to this tab)
-    const handleFocus = async () => {
-      console.log('👁️ Window focused, refreshing dashboard...')
-      // Refresh immediately when window gets focus
-      await Promise.all([
-        refreshDashboardData(),
-        fetchUpcomingLeaves(),
-        fetchAttendanceStats()
-      ])
-    }
-    
-    window.addEventListener('focus', handleFocus)
-    
-    // Also refresh when component becomes visible (React Router navigation)
-    const handlePageShow = async () => {
-      console.log('👁️ Page shown, refreshing dashboard...')
-      await Promise.all([
-        refreshDashboardData(),
-        fetchUpcomingLeaves(),
-        fetchAttendanceStats()
-      ])
-    }
-    
-    window.addEventListener('pageshow', handlePageShow)
 
     return () => {
-      clearInterval(pollInterval)
-      window.removeEventListener('attendanceUpdated', handleAttendanceUpdate)
-      document.removeEventListener('attendanceUpdated', handleAttendanceUpdate)
-      window.removeEventListener('storage', handleStorageChange)
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('focus', handleFocus)
-      window.removeEventListener('pageshow', handlePageShow)
+      clearInterval(attendanceInterval)
     }
-  }, [token, fetchAttendanceStats, fetchUpcomingLeaves, refreshDashboardData])
+  }, [token, fetchUpcomingLeaves, refreshDashboardData])
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -353,70 +164,12 @@ export default function DashboardHome() {
     })
   }
 
-  // Calculate today's attendance stats from chart data - recalculate when attendanceData changes
-  const todayStats = useMemo(() => {
-    if (!attendanceData || attendanceData.length === 0) {
-      console.log('⚠️ No attendance data available for todayStats')
-      return { present: 0, absent: 0, late: 0, on_leave: 0 }
-    }
-    
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const todayStr = today.toISOString().split('T')[0]
-    console.log('📅 Looking for today\'s data:', todayStr, 'in', attendanceData.length, 'items')
-    
-    // Try to find today's data - check all possible date fields
-    let todayData = null
-    for (const item of attendanceData) {
-      const itemDate = item.dateOriginal || item.date
-      if (!itemDate) continue
-      
-      // Normalize the date - handle both string and Date objects
-      let normalizedItemDate: string | null = null
-      try {
-        if (typeof itemDate === 'string') {
-          normalizedItemDate = new Date(itemDate).toISOString().split('T')[0]
-        } else if (itemDate instanceof Date) {
-          normalizedItemDate = itemDate.toISOString().split('T')[0]
-        } else {
-          normalizedItemDate = new Date(String(itemDate)).toISOString().split('T')[0]
-        }
-      } catch (e) {
-        console.error('Error normalizing date:', itemDate, e)
-        continue
-      }
-      
-      if (normalizedItemDate === todayStr) {
-        todayData = item
-        console.log('✅ Found today\'s data:', item)
-        break
-      }
-    }
-    
-    // If not found, use the most recent data (last item in array, which should be today or closest)
-    if (!todayData) {
-      todayData = attendanceData[attendanceData.length - 1] || {}
-      console.log('⚠️ Today\'s data not found, using most recent:', todayData)
-    }
-    
-    const stats = {
-      present: parseInt(todayData.present) || 0,
-      absent: parseInt(todayData.absent) || 0,
-      late: parseInt(todayData.late) || 0,
-      on_leave: parseInt(todayData.on_leave) || 0
-    }
-    
-    console.log('📊 Today\'s stats calculated:', stats, 'from data:', todayData)
-    return stats
-  }, [attendanceData])
-  
   // Memoize stat cards to ensure they update when stats change
-  // Use stats from API directly for attendance counts (more reliable than calculating from attendanceData)
   const statCards = useMemo(() => {
-    const presentValue = stats.todayPresent ?? todayStats.present ?? 0
-    const absentValue = stats.todayAbsent ?? todayStats.absent ?? 0
-    const lateValue = stats.todayLate ?? todayStats.late ?? 0
-    const onLeaveValue = stats.todayOnLeave ?? todayStats.on_leave ?? 0
+    const presentValue = stats.todayPresent ?? 0
+    const absentValue = stats.todayAbsent ?? 0
+    const lateValue = stats.todayLate ?? 0
+    const onLeaveValue = stats.todayOnLeave ?? 0
     
     const cards = [
       {
@@ -481,10 +234,6 @@ export default function DashboardHome() {
     stats.todayAbsent, 
     stats.todayLate, 
     stats.todayOnLeave,
-    todayStats.present, 
-    todayStats.absent, 
-    todayStats.late, 
-    todayStats.on_leave,
     forceUpdate
   ])
 
@@ -492,79 +241,89 @@ export default function DashboardHome() {
     // Refresh data when clicking on stat cards to ensure latest data
     if (status) {
       console.log(`🔄 Stat card clicked: ${status}, refreshing data...`)
-      // Refresh both dashboard stats (which includes today's counts) and attendance chart data
-      Promise.all([
-        refreshDashboardData(),
-        fetchAttendanceStats()
-      ]).then(() => {
+      // Refresh dashboard stats
+      refreshDashboardData().then(() => {
         console.log('✅ Data refreshed after stat card click')
         // Force UI update after data is refreshed
         setTimeout(() => {
           setForceUpdate(prev => prev + 1)
-          setChartRefreshKey(prev => prev + 1)
         }, 200)
       })
     }
   }
 
-
-  // Prepare pie chart data for today's attendance - prefer API stats, fallback to calculated todayStats
+  // Prepare chart data for Chart.js pie chart
   const pieChartData = useMemo(() => {
-    const presentValue = stats.todayPresent ?? todayStats.present ?? 0
-    const absentValue = stats.todayAbsent ?? todayStats.absent ?? 0
-    const lateValue = stats.todayLate ?? todayStats.late ?? 0
-    const onLeaveValue = stats.todayOnLeave ?? todayStats.on_leave ?? 0
-    
-    const data = [
-      { name: 'Present', value: presentValue, color: '#22c55e' },
-      { name: 'Absent', value: absentValue, color: '#ef4444' },
-      { name: 'Late', value: lateValue, color: '#eab308' },
-      { name: 'On Leave', value: onLeaveValue, color: '#3b82f6' }
-    ].filter(item => item.value > 0) // Only show categories with data
-    
-    console.log('📊 Pie chart data recalculated:', data)
-    console.log('📊 Using values:', { presentValue, absentValue, lateValue, onLeaveValue })
-    return data
-  }, [
-    stats.todayPresent, 
-    stats.todayAbsent, 
-    stats.todayLate, 
-    stats.todayOnLeave,
-    todayStats.present, 
-    todayStats.absent, 
-    todayStats.late, 
-    todayStats.on_leave, 
-    forceUpdate
-  ])
+    const presentValue = Number(stats.todayPresent ?? 0) || 0
+    const absentValue = Number(stats.todayAbsent ?? 0) || 0
+    const lateValue = Number(stats.todayLate ?? 0) || 0
+    const onLeaveValue = Number(stats.todayOnLeave ?? 0) || 0
 
-  // Force chart refresh when stats change (for pie chart and stat cards updates)
-  useEffect(() => {
-    console.log('🔄 Stats changed, checking if refresh needed...', {
-      todayPresent: stats.todayPresent,
-      todayAbsent: stats.todayAbsent,
-      todayLate: stats.todayLate,
-      todayOnLeave: stats.todayOnLeave,
-      attendanceDataLength: attendanceData.length,
-      loadingChart
-    })
-    
-    if ((stats.todayPresent !== undefined || stats.todayAbsent !== undefined || stats.todayLate !== undefined || stats.todayOnLeave !== undefined) && !loadingChart) {
-      console.log('🔄 Stats have today values, forcing UI refresh...')
-      
-      // Force updates immediately
-      setChartRefreshKey(prev => {
-        const newKey = prev + 1
-        console.log('🔄 Chart key updated to:', newKey)
-        return newKey
-      })
-      setForceUpdate(prev => {
-        const newUpdate = prev + 1
-        console.log('🔄 Force update to:', newUpdate)
-        return newUpdate
-      })
-      console.log('🔄 Force update triggered for UI refresh')
+    const labels: string[] = []
+    const data: number[] = []
+    const backgroundColor: string[] = []
+
+    if (presentValue > 0) {
+      labels.push('Present')
+      data.push(presentValue)
+      backgroundColor.push('hsl(142, 71%, 45%)')
     }
-  }, [stats.todayPresent, stats.todayAbsent, stats.todayLate, stats.todayOnLeave, attendanceData.length, loadingChart])
+    if (absentValue > 0) {
+      labels.push('Absent')
+      data.push(absentValue)
+      backgroundColor.push('hsl(0, 84%, 60%)')
+    }
+    if (lateValue > 0) {
+      labels.push('Late')
+      data.push(lateValue)
+      backgroundColor.push('hsl(45, 93%, 47%)')
+    }
+    if (onLeaveValue > 0) {
+      labels.push('On Leave')
+      data.push(onLeaveValue)
+      backgroundColor.push('hsl(217, 91%, 60%)')
+    }
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'Employees',
+          data,
+          backgroundColor,
+          borderWidth: 2,
+          borderColor: '#fff',
+        },
+      ],
+    }
+  }, [stats.todayPresent, stats.todayAbsent, stats.todayLate, stats.todayOnLeave, forceUpdate])
+
+  const hasAttendanceData = useMemo(() => {
+    return pieChartData.datasets[0].data.reduce((sum, val) => sum + val, 0) > 0
+  }, [pieChartData])
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom' as const,
+        labels: {
+          padding: 15,
+          usePointStyle: true,
+        },
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context: any) {
+            const label = context.label || ''
+            const value = context.parsed || 0
+            return `${label}: ${value} employee${value !== 1 ? 's' : ''}`
+          },
+        },
+      },
+    },
+  }
 
   return (
     <div className="space-y-6 overflow-x-hidden max-w-full">
@@ -632,100 +391,34 @@ export default function DashboardHome() {
         ))}
       </div>
 
-      {/* Daily Attendance Graph */}
-      <motion.div
+ {/* Today's Attendance Pie Chart */}
+ <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
+        transition={{ delay: 0.5 }}
       >
-        <Card variant="glass">
-          <CardHeader>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
-                <BarChart3 size={18} className="md:w-5 md:h-5 flex-shrink-0" />
-                <span className="truncate">
-                  Today's Attendance Overview
-                </span>
-              </CardTitle>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={async () => {
-                    console.log('🔄 Manual refresh triggered')
-                    setLoadingChart(true)
-                    try {
-                      await Promise.all([
-                        fetchAttendanceStats(),
-                        refreshDashboardData(),
-                        fetchUpcomingLeaves()
-                      ])
-                      console.log('✅ Manual refresh completed')
-                    } catch (error) {
-                      console.error('❌ Error in manual refresh:', error)
-                    } finally {
-                      setLoadingChart(false)
-                    }
-                  }}
-                  className="text-xs flex items-center gap-1"
-                  title="Refresh attendance data"
-                  disabled={loadingChart}
-                >
-                  <RefreshCw size={14} className={loadingChart ? 'animate-spin' : ''} />
-                  {loadingChart ? 'Refreshing...' : 'Refresh'}
-                </Button>
-              </div>
-            </div>
+        <Card variant="glass" className="flex flex-col">
+          <CardHeader className="items-center pb-0">
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 size={20} />
+              Today's Attendance Overview
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            {loadingChart ? (
-              <Skeleton className="h-64 w-full" />
-            ) : attendanceData.length === 0 ? (
-              <div className="h-64 flex items-center justify-center text-muted-foreground">
-                No attendance data available
+          <CardContent className="flex-1 pb-0">
+            {loading ? (
+              <div className="h-[400px] flex items-center justify-center">
+                <Skeleton className="h-full w-full rounded-md" />
               </div>
-            ) : pieChartData.length === 0 ? (
-              <div className="h-64 flex items-center justify-center text-muted-foreground">
-                No attendance data for today
+            ) : !hasAttendanceData ? (
+              <div className="h-[400px] flex flex-col items-center justify-center text-muted-foreground space-y-2">
+                <BarChart3 className="w-12 h-12 opacity-50" />
+                <p className="text-sm font-medium">No attendance data for today</p>
+                <p className="text-xs">Mark attendance to see the chart</p>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={280} className="sm:h-[350px]" key={`pie-${chartRefreshKey}-${forceUpdate}-${pieChartData.length}`}>
-                <PieChart key={`piechart-${chartRefreshKey}-${forceUpdate}`}>
-                  <Pie
-                    key={`pie-${chartRefreshKey}-${forceUpdate}`}
-                    data={pieChartData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent, value }) => `${name}: ${value} (${percent ? (percent * 100).toFixed(0) : 0}%)`}
-                    outerRadius={120}
-                    innerRadius={40}
-                    fill="#8884d8"
-                    dataKey="value"
-                    animationBegin={0}
-                    animationDuration={800}
-                    isAnimationActive={true}
-                  >
-                    {pieChartData.map((entry, index) => (
-                      <Cell key={`cell-${index}-${entry.value}-${chartRefreshKey}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'rgba(0,0,0,0.9)', 
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      borderRadius: '8px',
-                      color: '#fff'
-                    }}
-                    formatter={(value: any, name: string) => [`${value} employees`, name]}
-                  />
-                  <Legend 
-                    verticalAlign="bottom" 
-                    height={36}
-                    formatter={(value: string) => <span style={{ color: '#fff' }}>{value}</span>}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              <div className="h-[400px] w-full">
+                <Pie data={pieChartData} options={chartOptions} />
+              </div>
             )}
           </CardContent>
         </Card>
@@ -787,7 +480,10 @@ export default function DashboardHome() {
           </Card>
         </motion.div>
       )}
+
+     
     </div>
   )
 }
+
 
