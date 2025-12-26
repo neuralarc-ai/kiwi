@@ -707,7 +707,7 @@ export default function AttendanceTracking() {
           transition={{ delay: 0.2 }}
           className="space-y-4"
         >
-          <Card variant="glass" className="overflow-visible">
+          <Card variant="glass" className="w-full" style={{ overflow: 'visible' }}>
             <CardHeader className="bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-blue-600/20 border-b border-white/10">
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -727,31 +727,41 @@ export default function AttendanceTracking() {
                 </Badge>
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-0 overflow-visible">
+            <CardContent className="p-0 w-full" style={{ overflow: 'visible' }}>
               {loadingMonthly ? (
                 <div className="p-6">
                   <Skeleton className="h-64 w-full rounded-lg" />
                 </div>
               ) : (
                 <div 
-                  className="overflow-x-auto w-full" 
+                  className="w-full"
+                  id="monthly-attendance-scroll"
                   style={{ 
+                    overflowX: 'auto',
+                    overflowY: 'visible',
                     WebkitOverflowScrolling: 'touch',
                     scrollbarWidth: 'thin',
-                    msOverflowStyle: 'auto'
+                    msOverflowStyle: 'auto',
+                    touchAction: 'pan-x pan-y',
+                    overscrollBehaviorX: 'contain',
+                    position: 'relative',
+                    display: 'block',
+                    width: '100%',
+                    maxWidth: '100%',
+                    minHeight: '200px'
                   }}
                 >
-                  <div className="inline-block align-middle">
-                    <div className="rounded-b-xl">
-                      <table 
-                        className="border-collapse text-xs sm:text-sm" 
-                        style={{ 
-                          minWidth: `${200 + (getDaysInMonth(selectedYear, selectedMonth) * 55)}px`,
-                          maxWidth: 'none',
-                          width: 'auto',
-                          tableLayout: 'fixed'
-                        }}
-                      >
+                  <div style={{ display: 'inline-block', minWidth: 'max-content', width: 'auto' }}>
+                    <table 
+                      className="border-collapse text-xs sm:text-sm" 
+                      style={{ 
+                        minWidth: `${Math.max(500, 200 + (getDaysInMonth(selectedYear, selectedMonth) * 50))}px`,
+                        width: 'auto',
+                        tableLayout: 'fixed',
+                        display: 'table',
+                        margin: 0
+                      }}
+                    >
                         <thead>
                           <tr className="bg-gradient-to-r from-white/90 via-white/80 to-white/90 dark:from-gray-800/90 dark:via-gray-800/80 dark:to-gray-800/90 backdrop-blur-sm border-b-2 border-gray-200 dark:border-white/10">
                             <th className="sticky left-0 z-20 bg-gradient-to-r from-white/95 to-white/90 dark:from-gray-800/95 dark:to-gray-800/90 backdrop-blur-md border-r-2 border-gray-200 dark:border-white/10 p-2 sm:p-4 text-left min-w-[150px] sm:min-w-[200px] md:min-w-[240px] shadow-xl">
@@ -897,7 +907,6 @@ export default function AttendanceTracking() {
                           )}
                         </tbody>
                       </table>
-                    </div>
                   </div>
                 </div>
               )}
