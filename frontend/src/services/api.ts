@@ -1,4 +1,25 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api'
+// API Base URL configuration
+// Priority: 1. VITE_API_URL env var, 2. Localhost fallback (dev only)
+const getApiBaseUrl = () => {
+  // If VITE_API_URL is explicitly set, use it
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // In production, VITE_API_URL MUST be set
+  // This is a fallback that will show an error if not configured
+  if (import.meta.env.PROD) {
+    console.error('❌ VITE_API_URL is not set in production!');
+    console.error('❌ Please set it in Vercel environment variables.');
+    // Return a placeholder that will cause clear errors
+    return 'https://backend-url-not-configured/api';
+  }
+  
+  // Development fallback - localhost
+  return 'http://localhost:5001/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export interface LoginResponse {
   token: string
@@ -81,6 +102,32 @@ class ApiService {
 
   constructor() {
     this.baseURL = API_BASE_URL
+    
+    // Validate API URL format
+    if (!this.baseURL.endsWith('/api')) {
+      console.warn('⚠️ Warning: API_BASE_URL should end with "/api". Current:', this.baseURL)
+      console.warn('⚠️ This may cause routing issues. Expected format: http://host:port/api or https://host/api')
+    }
+    
+    // Log the configured API URL (helpful for debugging)
+    console.log('🔧 API Service initialized with base URL:', this.baseURL)
+    console.log('🔧 Environment:', import.meta.env.PROD ? 'Production' : 'Development')
+    console.log('🔧 VITE_API_URL env var:', import.meta.env.VITE_API_URL || 'not set (using fallback)')
+    console.log('🔧 Frontend URL: https://kiwi-shraddha.vercel.app')
+    
+    // Warn if using localhost in production
+    if (this.baseURL.includes('localhost') && import.meta.env.PROD) {
+      console.error('❌ ERROR: Using localhost API URL in production!')
+      console.error('❌ This will not work. Set VITE_API_URL in Vercel environment variables.')
+      console.error('❌ Go to Vercel Dashboard → Your Project → Settings → Environment Variables')
+      console.error('❌ Add: VITE_API_URL=https://your-backend-service.run.app/api')
+    }
+    
+    // Warn if backend URL is placeholder
+    if (this.baseURL.includes('your-backend-service')) {
+      console.error('❌ ERROR: Backend URL is not configured!')
+      console.error('❌ Set VITE_API_URL in Vercel environment variables to your actual backend URL')
+    }
   }
 
   private getAuthHeaders(token: string) {
@@ -96,6 +143,11 @@ class ApiService {
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`
     
+    // Log the request URL in development
+    if (import.meta.env.DEV) {
+      console.log(`🌐 API Request: ${options.method || 'GET'} ${url}`)
+    }
+    
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
@@ -109,24 +161,42 @@ class ApiService {
       
       const contentType = response.headers.get('content-type')
       if (!contentType || !contentType.includes('application/json')) {
-        await response.text() // Read response to clear buffer
+        const textResponse = await response.text()
+        console.error(`❌ Non-JSON response from ${url}:`, {
+          status: response.status,
+          statusText: response.statusText,
+          contentType,
+          body: textResponse.substring(0, 200)
+        })
+        
         if (response.status === 404) {
-          throw new Error(`API endpoint not found: ${url}`)
+          throw new Error(`API endpoint not found: ${options.method || 'GET'} ${url}. Please check that the backend is running and the API URL is correct.`)
         }
-        throw new Error(`Server returned non-JSON response. Status: ${response.status}`)
+        throw new Error(`Server returned non-JSON response. Status: ${response.status}. URL: ${url}`)
       }
 
       const data = await response.json()
 
       if (!response.ok) {
+        console.error(`❌ API Error (${response.status}):`, {
+          url,
+          method: options.method || 'GET',
+          error: data
+        })
         const error = new Error(data.message || `HTTP error! status: ${response.status}`)
-        ;(error as any).response = { data }
+        ;(error as any).response = { data, url, status: response.status }
         throw error
       }
 
       return data
     } catch (error) {
-      console.error('API Request failed:', error)
+      console.error('❌ API Request failed:', {
+        url,
+        method: options.method || 'GET',
+        error: error instanceof Error ? error.message : error,
+        baseURL: this.baseURL
+      })
+      
       if (error instanceof Error) {
         // Handle network errors (server not reachable, CORS, etc.)
         if (
@@ -134,9 +204,10 @@ class ApiService {
           error.message.includes('NetworkError') ||
           error.message.includes('Network request failed') ||
           error.message.includes('ERR_CONNECTION_REFUSED') ||
-          error.message.includes('ERR_NETWORK')
+          error.message.includes('ERR_NETWORK') ||
+          error.message.includes('CORS')
         ) {
-          throw new Error(`Cannot connect to backend server at ${this.baseURL}. Please ensure the backend server is running on port 5001.`)
+          throw new Error(`Cannot connect to backend server at ${this.baseURL}. Please ensure the backend server is running and accessible. Attempted URL: ${url}`)
         }
         throw error
       }

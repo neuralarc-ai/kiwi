@@ -19,7 +19,36 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 
 // Middleware
-app.use(cors());
+// CORS configuration - allow frontend from Vercel and local development
+const allowedOrigins = [
+  'https://kiwi-shraddha.vercel.app',
+  'https://kiwi-shraddha.vercel.app/',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:8080',
+  ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [])
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.some(allowed => origin.startsWith(allowed))) {
+      callback(null, true);
+    } else {
+      // In development, allow all origins for easier testing
+      if (process.env.NODE_ENV === 'development') {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -64,6 +93,8 @@ console.log('   - /api/settings/*');
 console.log('   - /api/recruitment/*');
 console.log('   - /api/dashboard/*');
 console.log('   - /api/performance/*');
+console.log('✅ CORS enabled for:');
+allowedOrigins.forEach(origin => console.log(`   - ${origin}`));
 
 // Health check
 app.get('/api/health', (req, res) => {

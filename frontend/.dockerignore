@@ -1,0 +1,143 @@
+# Dependencies (keep package-lock.json for reproducible builds)
+node_modules
+npm-debug.log
+yarn-error.log
+
+# ============================================
+# CRITICAL SECURITY FILES - NEVER INCLUDE THESE
+# ============================================
+# Environment files and secrets (MUST be set via Cloud Run secrets/env vars)
+.env
+.env.*
+.env.local
+.env.development
+.env.production
+.env.test
+.env.staging
+*.env
+.envrc
+
+# Secrets and credentials
+secrets
+secrets.*
+*.secret
+credentials
+credentials.*
+config/secrets.*
+config/*.key
+config/*.pem
+
+# SSL/TLS certificates and keys
+*.pem
+*.key
+*.crt
+*.cert
+*.p12
+*.pfx
+*.jks
+*.pkey
+*.privkey
+
+# SSH keys
+id_rsa
+id_rsa.pub
+id_dsa
+id_dsa.pub
+id_ecdsa
+id_ecdsa.pub
+id_ed25519
+id_ed25519.pub
+
+# Encryption keys
+*.gpg
+*.pgp
+*.asc
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage
+.nyc_output
+test-results
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Build artifacts (will be built in Docker)
+dist
+build
+*.map
+.next
+.nuxt
+.cache
+
+# Documentation
+README.md
+*.md
+docs
+CHANGELOG.md
+LICENSE
+
+# Docker files (don't include in image)
+Dockerfile
+.dockerignore
+docker-compose.yml
+.docker
+Dockerfile.*
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+.circleci
+Jenkinsfile
+
+# Temporary files
+tmp
+temp
+*.tmp
+*.cache
+.cache
+.tmp
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Local development files
+.local
+local.*
+*.local
+
+# Source maps (optional - remove if you want to include them)
+*.map
+
+
+
