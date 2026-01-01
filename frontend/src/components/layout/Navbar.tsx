@@ -46,7 +46,7 @@ export default function Navbar() {
               className="p-1.5 sm:p-2 rounded-lg glass hover:bg-white/20 transition-colors flex-shrink-0"
               title="Go to Home"
             >
-              <Home size={18} className="sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
+              <Home size={18} className="sm:w-5 sm:h-5" style={{ color: 'oklch(62% .08 270)' }} />
             </motion.button>
           )}
         </div>

@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { apiService, Employee } from '@/services/api'
 import { useAuth } from '@/contexts/AuthContext'
+import { useToast, ToastContainer } from '@/components/ui/toast'
 
 interface EmployeeAttendance {
   id: number
@@ -26,6 +27,7 @@ interface EmployeeAttendance {
 
 export default function AttendanceTracking() {
   const { token, user } = useAuth()
+  const toast = useToast()
   const navigate = useNavigate()
   const [employees, setEmployees] = useState<EmployeeAttendance[]>([])
   const [allEmployees, setAllEmployees] = useState<Employee[]>([])
@@ -49,6 +51,8 @@ export default function AttendanceTracking() {
   const [upcomingLeaves, setUpcomingLeaves] = useState<any[]>([])
   const [loadingUpcomingLeaves, setLoadingUpcomingLeaves] = useState(false)
   const [showUpcomingLeaves, setShowUpcomingLeaves] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const employeesPerPage = 5
   const isHR = user?.role === 'admin' || user?.role === 'hr_executive'
 
   useEffect(() => {
@@ -124,7 +128,7 @@ export default function AttendanceTracking() {
       const hireDate = new Date((employee as any).hire_date)
       const attendanceDate = new Date(selectedDate)
       if (attendanceDate < hireDate) {
-        alert(`Cannot mark attendance before employee's joining date (${hireDate.toLocaleDateString()})`)
+        toast.warning(`Cannot mark attendance before employee's joining date (${hireDate.toLocaleDateString()})`)
         return
       }
     }
@@ -174,7 +178,7 @@ export default function AttendanceTracking() {
     } catch (error: any) {
       console.error('❌ Error marking attendance:', error)
       const errorMessage = error?.response?.data?.message || error?.message || 'Failed to mark attendance'
-      alert(errorMessage)
+      toast.error(errorMessage)
     } finally {
       setUpdating(null)
     }
@@ -215,7 +219,7 @@ export default function AttendanceTracking() {
     if (!token || !isHR) return
 
     if (!leaveFormData.employee_id || !leaveFormData.start_date || !leaveFormData.end_date) {
-      alert('Please fill in all required fields')
+      toast.warning('Please fill in all required fields')
       return
     }
 
@@ -230,7 +234,7 @@ export default function AttendanceTracking() {
       }, token)
       
       console.log('✅ Leave created successfully:', response)
-      alert('Leave added successfully!')
+      toast.success('Leave added successfully!')
       setLeaveFormData({
         employee_id: '',
         leave_type: 'sick',
@@ -252,9 +256,9 @@ export default function AttendanceTracking() {
     }
   }
 
-  // Calculate stats
+  // Calculate stats - treat null as 'present' (default)
   const stats = {
-    present: employees.filter(e => e.attendance_status === 'present').length,
+    present: employees.filter(e => e.attendance_status === 'present' || e.attendance_status === null).length,
     absent: employees.filter(e => e.attendance_status === 'absent').length,
     late: employees.filter(e => e.attendance_status === 'late').length,
     onLeave: employees.filter(e => e.attendance_status === 'on_leave').length,
@@ -328,6 +332,17 @@ export default function AttendanceTracking() {
     return Array.from(employeeMap.values())
   }, [monthlyAttendance])
 
+  // Pagination calculations
+  const totalPages = Math.ceil(monthlyEmployees.length / employeesPerPage)
+  const startIndex = (currentPage - 1) * employeesPerPage
+  const endIndex = startIndex + employeesPerPage
+  const paginatedEmployees = monthlyEmployees.slice(startIndex, endIndex)
+
+  // Reset to page 1 when employees list changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [monthlyEmployees.length, selectedMonth, selectedYear])
+
   const handleMonthChange = (direction: 'prev' | 'next') => {
     if (direction === 'prev') {
       if (selectedMonth === 1) {
@@ -346,18 +361,21 @@ export default function AttendanceTracking() {
     }
   }
 
+
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
   return (
-    <div className="space-y-6 overflow-x-hidden max-w-full">
+    <>
+      <ToastContainer toasts={toast.toasts} onClose={toast.removeToast} />
+      <div className="space-y-6 overflow-x-hidden max-w-full">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 overflow-x-hidden max-w-full"
       >
         <div className="flex-1 min-w-0 overflow-x-hidden">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 gradient-text truncate">Attendance Tracking</h1>
-          <p className="text-xs sm:text-sm md:text-base text-muted-foreground truncate">Monitor employee attendance and time tracking</p>
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-2 gradient-text truncate">Attendance Tracking</h1>
+          <p className="text-sm sm:text-base text-muted-foreground truncate">Monitor employee attendance and time tracking</p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 flex-shrink-0">
           {/* View Mode Toggle */}
@@ -550,10 +568,10 @@ export default function AttendanceTracking() {
                 }
               }}
             >
-              <CardContent className="p-6">
+              <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center">
                       <Calendar className="text-white" size={24} />
                     </div>
                     <div>
@@ -630,18 +648,18 @@ export default function AttendanceTracking() {
                             className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg glass hover:bg-white/5 transition-colors"
                           >
                             <div className="flex items-center gap-3 flex-1">
-                              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                                 {leave.first_name?.[0]}{leave.last_name?.[0]}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="font-semibold truncate">
+                                <p className="font-semibold text-base truncate">
                                   {leave.first_name} {leave.last_name}
                                 </p>
                                 <div className="flex flex-wrap items-center gap-2 mt-1">
                                   <Badge variant="secondary" className="text-xs">
                                     {leave.emp_id}
                                   </Badge>
-                                  <span className="text-sm text-muted-foreground">
+                                  <span className="text-base text-muted-foreground">
                                     {startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                   </span>
                                   <span className="text-xs text-muted-foreground">
@@ -685,11 +703,11 @@ export default function AttendanceTracking() {
             transition={{ delay: index * 0.1 }}
           >
             <Card variant="glass" className="hover:scale-105 transition-transform">
-              <CardContent className="p-6">
+              <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground mb-2">{stat.label}</p>
-                    <p className="text-3xl font-bold">{stat.value}</p>
+                    <p className="text-xl sm:text-2xl font-bold">{stat.value}</p>
                   </div>
                   <stat.icon className={`text-${stat.color}-400`} size={32} />
                 </div>
@@ -708,14 +726,14 @@ export default function AttendanceTracking() {
           className="space-y-4"
         >
           <Card variant="glass" className="w-full" style={{ overflow: 'visible' }}>
-            <CardHeader className="bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-blue-600/20 border-b border-white/10">
+            <CardHeader className="bg-gray-100/20 dark:bg-gray-800/20 border-b border-white/10">
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center shadow-lg shadow-gray-400/30">
                     <Calendar className="text-white" size={20} />
                   </div>
                   <div>
-                    <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                    <span className="text-xl font-bold text-black dark:text-white">
                       {monthNames[selectedMonth - 1]} {selectedYear}
                     </span>
                     <p className="text-xs text-muted-foreground mt-0.5">Monthly Attendance Overview</p>
@@ -766,7 +784,7 @@ export default function AttendanceTracking() {
                           <tr className="bg-gradient-to-r from-white/90 via-white/80 to-white/90 dark:from-gray-800/90 dark:via-gray-800/80 dark:to-gray-800/90 backdrop-blur-sm border-b-2 border-gray-200 dark:border-white/10">
                             <th className="sticky left-0 z-20 bg-gradient-to-r from-white/95 to-white/90 dark:from-gray-800/95 dark:to-gray-800/90 backdrop-blur-md border-r-2 border-gray-200 dark:border-white/10 p-2 sm:p-4 text-left min-w-[150px] sm:min-w-[200px] md:min-w-[240px] shadow-xl">
                               <div className="flex items-center gap-2.5">
-                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-md">
+                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center shadow-md">
                                   <Users size={16} className="text-white" />
                                 </div>
                                 <span className="font-bold text-sm text-gray-900 dark:text-white">Employee</span>
@@ -793,8 +811,8 @@ export default function AttendanceTracking() {
                                   <div className={`text-xs font-bold ${isToday ? 'text-blue-700 dark:text-blue-200' : 'text-gray-900 dark:text-white/90'}`}>
                                     {day}
                                   </div>
-                                  <div className={`text-[10px] mt-1 font-medium ${
-                                    isToday ? 'text-blue-600 dark:text-blue-300' : 'text-gray-600 dark:text-white/60'
+                                  <div className={`text-base mt-1 font-medium ${
+                                    isToday ? 'text-black dark:text-white' : 'text-gray-600 dark:text-white/60'
                                   }`}>
                                     {date.toLocaleDateString('en-US', { weekday: 'short' })}
                                   </div>
@@ -811,15 +829,15 @@ export default function AttendanceTracking() {
                                 className="text-center py-16 bg-gradient-to-b from-gray-50/50 to-white/30 dark:from-gray-900/50 dark:to-gray-900/30"
                               >
                                 <div className="flex flex-col items-center gap-3">
-                                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-600/20 flex items-center justify-center">
-                                    <Users className="text-blue-400/50" size={32} />
+                                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gray-300/20 to-gray-400/20 flex items-center justify-center">
+                                    <Users className="text-gray-400 dark:text-gray-500" size={32} />
                                   </div>
                                   <p className="text-muted-foreground font-medium">No attendance records found for this month</p>
                                 </div>
                               </td>
                             </tr>
                           ) : (
-                            monthlyEmployees.map((employee, empIndex) => {
+                            paginatedEmployees.map((employee, empIndex) => {
                               return (
                                 <tr 
                                   key={employee.id} 
@@ -831,12 +849,12 @@ export default function AttendanceTracking() {
                                 >
                                   <td className="sticky left-0 z-10 bg-gradient-to-r from-white/95 via-white/90 to-white/95 dark:from-gray-900/95 dark:via-gray-900/90 dark:to-gray-900/95 backdrop-blur-md border-r-2 border-gray-200 dark:border-white/10 border-b border-gray-200/50 dark:border-white/5 p-2 sm:p-4 shadow-xl group-hover:from-white/98 group-hover:via-white/95 group-hover:to-white/98 dark:group-hover:from-gray-800/95 dark:group-hover:via-gray-800/90 dark:group-hover:to-gray-800/95 min-w-[120px] sm:min-w-[150px] md:min-w-[200px]">
                                     <div className="flex items-center gap-2 sm:gap-3">
-                                      <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-blue-500 via-purple-600 to-blue-600 flex items-center justify-center text-white font-bold text-xs sm:text-sm flex-shrink-0 shadow-lg shadow-blue-500/30 ring-2 ring-blue-500/20">
+                                      <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 flex items-center justify-center text-white font-bold text-xs sm:text-sm flex-shrink-0 shadow-lg shadow-gray-400/30 ring-2 ring-gray-400/20">
                                         {employee.first_name?.[0]}{employee.last_name?.[0]}
                                       </div>
                                       <div className="min-w-0 flex-1">
                                         <div 
-                                          className="font-bold text-xs sm:text-sm truncate text-gray-900 dark:text-white mb-0.5 cursor-pointer hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
+                                          className="font-bold text-base truncate text-gray-900 dark:text-white mb-0.5 cursor-pointer hover:text-black dark:hover:text-white transition-colors"
                                           onClick={() => navigate(`/dashboard/employee/${employee.id}`)}
                                         >
                                           {employee.first_name} {employee.last_name}
@@ -885,7 +903,7 @@ export default function AttendanceTracking() {
                                                   : status === 'late'
                                                   ? 'bg-gradient-to-br from-yellow-500 to-amber-600 text-white border-2 border-yellow-400/50 shadow-yellow-500/30'
                                                   : status === 'on_leave'
-                                                  ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white border-2 border-blue-400/50 shadow-blue-500/30'
+                                                  ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-white border-2 border-gray-300/50 shadow-gray-400/30'
                                                   : 'bg-gradient-to-br from-gray-500 to-gray-600 text-white border-2 border-gray-400/50 shadow-gray-500/30'
                                               }`}
                                               title={`${getStatusLabel(status)} - ${day} ${monthNames[selectedMonth - 1]}`}
@@ -907,6 +925,70 @@ export default function AttendanceTracking() {
                           )}
                         </tbody>
                       </table>
+                  </div>
+                </div>
+              )}
+              {/* Pagination Controls */}
+              {monthlyEmployees.length > employeesPerPage && (
+                <div className="flex items-center justify-between p-4 border-t border-gray-200 dark:border-white/10 bg-gradient-to-r from-white/60 via-white/40 to-white/60 dark:from-gray-800/40 dark:via-gray-800/30 dark:to-gray-800/40">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {startIndex + 1} to {Math.min(endIndex, monthlyEmployees.length)} of {monthlyEmployees.length} employees
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="flex items-center gap-1"
+                    >
+                      <ChevronLeft size={16} />
+                      Previous
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => {
+                        const page = i + 1
+                        // Show first page, last page, current page, and pages around current
+                        if (
+                          page === 1 ||
+                          page === totalPages ||
+                          (page >= currentPage - 1 && page <= currentPage + 1)
+                        ) {
+                          return (
+                            <Button
+                              key={page}
+                              variant={currentPage === page ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setCurrentPage(page)}
+                              className={`min-w-[40px]`}
+                              style={currentPage === page ? { backgroundColor: 'oklch(62% .08 270)' } : undefined}
+                            >
+                              {page}
+                            </Button>
+                          )
+                        } else if (
+                          page === currentPage - 2 ||
+                          page === currentPage + 2
+                        ) {
+                          return (
+                            <span key={page} className="px-2 text-muted-foreground">
+                              ...
+                            </span>
+                          )
+                        }
+                        return null
+                      })}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                      className="flex items-center gap-1"
+                    >
+                      Next
+                      <ChevronRight size={16} />
+                    </Button>
                   </div>
                 </div>
               )}
@@ -936,7 +1018,7 @@ export default function AttendanceTracking() {
                   <span className="font-semibold text-gray-900 dark:text-white">Late</span>
                 </div>
                 <div className="flex items-center gap-3 group cursor-pointer">
-                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white border-2 border-blue-400/50 shadow-lg shadow-blue-500/30 flex items-center justify-center text-xs font-bold transition-transform group-hover:scale-110">
+                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-gray-300 to-gray-400 text-white border-2 border-gray-300/50 shadow-lg shadow-gray-400/30 flex items-center justify-center text-xs font-bold transition-transform group-hover:scale-110">
                     OL
                   </div>
                   <span className="font-semibold text-gray-900 dark:text-white">On Leave</span>
@@ -962,7 +1044,7 @@ export default function AttendanceTracking() {
         >
           <Card variant="glass">
             <CardHeader>
-              <CardTitle>Employee Attendance - {new Date(selectedDate).toLocaleDateString()}</CardTitle>
+              <CardTitle className="text-base">Employee Attendance - {new Date(selectedDate).toLocaleDateString()}</CardTitle>
             </CardHeader>
             <CardContent>
             {loading ? (
@@ -994,13 +1076,13 @@ export default function AttendanceTracking() {
                     className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4 p-4 rounded-lg glass hover:bg-white/5 transition-colors"
                   >
                     <div className="flex items-center gap-3 flex-1">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold flex-shrink-0">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-white font-bold flex-shrink-0">
                         {employee.first_name?.[0]}{employee.last_name?.[0]}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <h3 
-                            className="font-semibold truncate cursor-pointer hover:text-blue-400 transition-colors"
+                            className="font-semibold text-base truncate cursor-pointer hover:text-black dark:hover:text-white transition-colors"
                             onClick={() => navigate(`/dashboard/employee/${employee.id}`)}
                           >
                             {employee.first_name} {employee.last_name}
@@ -1066,6 +1148,8 @@ export default function AttendanceTracking() {
         </Card>
       </motion.div>
       )}
+
     </div>
+    </>
   )
 }

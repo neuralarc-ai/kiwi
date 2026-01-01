@@ -184,6 +184,7 @@ export const getEmployeesWithAttendance = async (req, res) => {
     const attendanceDate = date || new Date().toISOString().split('T')[0];
 
     // Get all employees with their attendance status for the date
+    // Default to 'present' if no attendance record exists
     // Only include employees whose hire_date is on or before the attendance date
     const result = await pool.query(
       `SELECT 
@@ -195,7 +196,7 @@ export const getEmployeesWithAttendance = async (req, res) => {
         e.department,
         e.position,
         e.hire_date,
-        a.status as attendance_status,
+        COALESCE(a.status, 'present') as attendance_status,
         a.check_in_time,
         a.check_out_time,
         a.notes,

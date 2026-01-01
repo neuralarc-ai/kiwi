@@ -78,6 +78,7 @@ export interface Payroll {
   allowances?: number
   deductions?: number
   leave_deduction?: number
+  tds?: number
   net_salary?: number
   salary?: number
   status?: string
@@ -476,6 +477,86 @@ class ApiService {
     return this.request<any>(`/performance/${id}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(token),
+    })
+  }
+
+  // Settings API
+  async getSettings(token: string): Promise<any[]> {
+    return this.request<any[]>(`/settings`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    })
+  }
+
+  async getSetting(token: string, key: string): Promise<any> {
+    return this.request<any>(`/settings/${key}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    })
+  }
+
+  async updateSettings(token: string, settings: Array<{ key: string; value: string }>): Promise<any> {
+    return this.request<any>(`/settings`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify({ settings }),
+    })
+  }
+
+  async updateSetting(token: string, key: string, value: string): Promise<any> {
+    return this.request<any>(`/settings/${key}`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify({ value }),
+    })
+  }
+
+  // Accounting API
+  async getAccountingData(token: string, month: number, year: number): Promise<any> {
+    return this.request<any>(`/accounting?month=${month}&year=${year}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    })
+  }
+
+  async syncSalaryFromPayroll(token: string, month: number, year: number): Promise<any> {
+    return this.request<any>(`/accounting/sync-salary?month=${month}&year=${year}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    })
+  }
+
+  async updateAccountingAmount(token: string, headId: number, amount: number, month: number, year: number): Promise<any> {
+    return this.request<any>(`/accounting/${headId}`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify({ amount, month, year }),
+    })
+  }
+
+  async initializeAccountingEntries(token: string, month: number, year: number): Promise<any> {
+    return this.request<any>(`/accounting/initialize`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify({ month, year }),
+    })
+  }
+
+  async createAccountingEntry(token: string, entry: {
+    head: string;
+    subhead?: string;
+    tdsPercentage?: number;
+    gstPercentage?: number;
+    frequency?: string;
+    remarks?: string;
+    amount?: number;
+    month: number;
+    year: number;
+  }): Promise<any> {
+    return this.request<any>(`/accounting`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify(entry),
     })
   }
 }

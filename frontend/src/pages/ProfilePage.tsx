@@ -40,7 +40,7 @@ export default function ProfilePage() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-2 gradient-text">Profile</h1>
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-2 gradient-text">Profile</h1>
         <p className="text-xs sm:text-sm md:text-base text-muted-foreground">View your profile information</p>
       </motion.div>
 
@@ -53,7 +53,7 @@ export default function ProfilePage() {
         <Card variant="glass">
           <CardHeader>
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl sm:text-2xl flex-shrink-0">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-white font-bold text-xl sm:text-2xl flex-shrink-0">
                 {user?.email?.charAt(0).toUpperCase() || 'U'}
               </div>
               <div className="flex-1 min-w-0">
@@ -126,7 +126,7 @@ export default function ProfilePage() {
             <div className="flex flex-wrap gap-3">
               <a
                 href="/dashboard/settings"
-                className="px-3 sm:px-4 py-2 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 transition-colors text-sm sm:text-base w-full sm:w-auto text-center"
+                className="px-3 sm:px-4 py-2 rounded-lg bg-blue-500/20 text-black dark:text-white border border-blue-500/30 hover:bg-blue-500/30 transition-colors text-sm sm:text-base w-full sm:w-auto text-center"
               >
                 Go to Settings
               </a>

@@ -11,10 +11,11 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "default", size = "default", ...props }, ref) => {
     return (
       <button
+        style={variant === "default" ? { backgroundColor: 'oklch(62% .08 270)', color: 'white' } : undefined}
         className={cn(
           "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
           {
-            "bg-blue-600 text-white shadow-lg shadow-blue-500/30 hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-500/40 hover:scale-105": variant === "default",
+            "text-white shadow-lg hover:shadow-xl hover:scale-105 hover:opacity-90": variant === "default",
             "border border-border bg-transparent hover:bg-accent hover:text-accent-foreground": variant === "outline",
             "hover:bg-accent hover:text-accent-foreground": variant === "ghost",
             "glass text-gray-700 dark:text-white hover:bg-white/90 dark:hover:bg-white/20 hover:scale-105": variant === "glass",

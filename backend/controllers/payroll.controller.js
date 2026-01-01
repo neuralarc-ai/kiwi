@@ -1,5 +1,22 @@
 import { pool } from '../config/database.js';
 
+// Helper function to get setting value from database
+const getSettingValue = async (key, defaultValue) => {
+  try {
+    const result = await pool.query('SELECT setting_value FROM settings WHERE setting_key = $1', [key]);
+    if (result.rows.length > 0 && result.rows[0].setting_value) {
+      const value = result.rows[0].setting_value;
+      // Try to parse as number, if it's a number string
+      const numValue = parseFloat(value);
+      return isNaN(numValue) ? value : numValue;
+    }
+    return defaultValue;
+  } catch (error) {
+    console.error(`Error getting setting ${key}:`, error);
+    return defaultValue;
+  }
+};
+
 // Helper function to count leave days for an employee in a specific month
 // Counts based on attendance records where status = 'on_leave' (not just approved leave applications)
 const getEmployeeLeavesCount = async (employeeId, month, year) => {
@@ -74,7 +91,9 @@ const getEmployeeLeavesCount = async (employeeId, month, year) => {
 
 // Helper function to calculate leave deduction
 const calculateLeaveDeduction = async (employeeId, month, year, basicSalary) => {
-  const MAX_ALLOWED_LEAVES = 2; // Maximum allowed leave days per month before deduction
+  // Get settings from database, with defaults
+  const MAX_ALLOWED_LEAVES = await getSettingValue('payroll_max_allowed_leaves', 2);
+  const WORKING_DAYS_PER_MONTH = await getSettingValue('payroll_working_days_per_month', 30);
   
   // Ensure basicSalary is a number
   const salary = parseFloat(basicSalary) || 0;
@@ -99,9 +118,8 @@ const calculateLeaveDeduction = async (employeeId, month, year, basicSalary) => 
   // Calculate excess leave days
   const excessLeaveDays = leaveDays - MAX_ALLOWED_LEAVES;
   
-  // Calculate daily salary (assuming 30 working days per month)
-  const workingDaysPerMonth = 30;
-  const dailySalary = salary / workingDaysPerMonth;
+  // Calculate daily salary using configured working days
+  const dailySalary = salary / WORKING_DAYS_PER_MONTH;
   
   // Deduct for excess leave days
   const leaveDeduction = dailySalary * excessLeaveDays;
@@ -111,6 +129,22 @@ const calculateLeaveDeduction = async (employeeId, month, year, basicSalary) => 
   console.log(`   - Deduction: ₹${leaveDeduction.toFixed(2)}`);
   
   return Math.round(leaveDeduction * 100) / 100; // Round to 2 decimal places
+};
+
+// Helper function to calculate TDS (Tax Deducted at Source)
+// TDS is calculated as a percentage of gross salary (basic + allowances)
+const calculateTDS = async (basicSalary, allowances) => {
+  const grossSalary = parseFloat(basicSalary || 0) + parseFloat(allowances || 0);
+  
+  if (grossSalary <= 0) {
+    return 0;
+  }
+  
+  // Get TDS rate from settings, default to 10%
+  const tdsRate = await getSettingValue('payroll_tds_percentage', 10) / 100;
+  const monthlyTDS = grossSalary * tdsRate;
+  
+  return Math.round(monthlyTDS * 100) / 100; // Round to 2 decimal places
 };
 
 // Helper function to recalculate payroll for an employee when leaves change
@@ -171,9 +205,12 @@ export const recalculatePayrollForLeave = async (employeeId, leaveStartDate, lea
             // Recalculate leave deduction
             const leaveDeduction = await calculateLeaveDeduction(employeeId, month, year, basicSalary);
             
-            // Calculate base deductions (excluding previous leave deduction)
-            const baseDeductions = parseFloat(payroll.deductions || 0) - parseFloat(payroll.leave_deduction || 0);
-            const finalDeductions = baseDeductions + leaveDeduction;
+            // Calculate TDS
+            const tds = await calculateTDS(basicSalary, allowances);
+            
+            // Calculate base deductions (excluding previous leave deduction and TDS)
+            const baseDeductions = parseFloat(payroll.deductions || 0) - parseFloat(payroll.leave_deduction || 0) - parseFloat(payroll.tds || 0);
+            const finalDeductions = baseDeductions + leaveDeduction + tds;
             const netSalary = basicSalary + allowances - finalDeductions;
             
             // Update payroll
@@ -181,9 +218,10 @@ export const recalculatePayrollForLeave = async (employeeId, leaveStartDate, lea
               `UPDATE payroll SET 
                 deductions = $1, 
                 leave_deduction = $2, 
-                net_salary = $3
-               WHERE id = $4`,
-              [finalDeductions, leaveDeduction, netSalary, payroll.id]
+                tds = $3,
+                net_salary = $4
+               WHERE id = $5`,
+              [finalDeductions, leaveDeduction, tds, netSalary, payroll.id]
             );
             
             console.log(`✅ Recalculated payroll for employee ${employeeId} (${month}/${year}): Leave deduction = ₹${leaveDeduction.toFixed(2)}, Net salary = ₹${netSalary.toFixed(2)}`);
@@ -235,6 +273,7 @@ export const getPayrolls = async (req, res) => {
           p.allowances,
           p.deductions,
           p.leave_deduction,
+          p.tds,
           p.net_salary,
           p.status,
           CASE 
@@ -259,9 +298,14 @@ export const getPayrolls = async (req, res) => {
       
       // Format the response and calculate leave deduction for employees without payroll records
       const formatted = await Promise.all(result.rows.map(async (row) => {
-        // Ensure salary is a number
-        const basicSalary = parseFloat(row.basic_salary || row.salary || 0);
+        // ALWAYS use salary from employees table as source of truth for basic_salary
+        // This ensures we always use the correct salary value (e.g., ₹20,000 not ₹19,996)
+        const employeeSalary = parseFloat(row.salary || 0);
+        // Always use employee salary as basic salary - it's the source of truth
+        const basicSalary = employeeSalary;
+        const allowances = parseFloat(row.allowances || 0);
         let leaveDeduction = 0; // Always start with 0, then calculate
+        let tds = 0;
         
         // ALWAYS calculate leave deduction if employee has salary (even if payroll doesn't exist)
         if (basicSalary > 0) {
@@ -271,40 +315,77 @@ export const getPayrolls = async (req, res) => {
             leaveDeduction = calculatedDeduction;
             console.log(`💰 FINAL: Employee ${row.employee_id} (${row.first_name} ${row.last_name}): Leave deduction = ₹${leaveDeduction.toFixed(2)} for ${month}/${year} (Salary: ₹${basicSalary.toFixed(2)})`);
             
+            // Calculate TDS
+            tds = await calculateTDS(basicSalary, allowances);
+            
             // If deduction changed and payroll exists, update it
-            if (row.payroll_id && Math.abs(leaveDeduction - parseFloat(row.leave_deduction || 0)) > 0.01) {
-              console.log(`🔄 Updating payroll record ${row.payroll_id} with new leave deduction`);
+            if (row.payroll_id && (Math.abs(leaveDeduction - parseFloat(row.leave_deduction || 0)) > 0.01 || Math.abs(tds - parseFloat(row.tds || 0)) > 0.01)) {
+              console.log(`🔄 Updating payroll record ${row.payroll_id} with new leave deduction and TDS`);
             }
           } catch (calcError) {
             console.error(`❌ Error calculating leave deduction for employee ${row.employee_id}:`, calcError);
             leaveDeduction = parseFloat(row.leave_deduction || 0); // Fallback to stored value
+            tds = parseFloat(row.tds || 0); // Fallback to stored TDS value
           }
         } else {
           console.log(`⚠️ Employee ${row.employee_id} (${row.first_name} ${row.last_name}): No salary found (₹${basicSalary}), cannot calculate leave deduction`);
+          tds = parseFloat(row.tds || 0); // Use stored TDS if available
         }
+        // Calculate other deductions (excluding TDS and leave deduction)
+        // Get the base deductions that were manually entered (before TDS and leave deduction were added)
+        const storedTotalDeductions = parseFloat(row.deductions || 0);
+        const storedLeaveDeduction = parseFloat(row.leave_deduction || 0);
+        const storedTDS = parseFloat(row.tds || 0);
         
-        const allowances = parseFloat(row.allowances || 0);
-        const otherDeductions = parseFloat((row.deductions || 0) - (row.leave_deduction || 0));
-        const totalDeductions = otherDeductions + leaveDeduction;
-        const netSalary = row.net_salary ? parseFloat(row.net_salary) : (basicSalary + allowances - totalDeductions);
+        // Calculate other deductions: stored total - (stored TDS + stored leave deduction)
+        // This gives us the base deductions that were manually entered
+        const baseOtherDeductions = Math.max(0, storedTotalDeductions - storedLeaveDeduction - storedTDS);
         
-        // If payroll exists but leave deduction changed, update it in database
+        // Recalculate total deductions: base other deductions + current leave deduction + current TDS
+        const totalDeductions = baseOtherDeductions + leaveDeduction + tds;
+        
+        // Recalculate net salary to ensure accuracy
+        const netSalary = basicSalary + allowances - totalDeductions;
+        
+        // Always update payroll if TDS or deductions need recalculation
+        // This ensures TDS is always 10% and calculations are correct
         if (row.payroll_id) {
           const storedDeduction = parseFloat(row.leave_deduction || 0);
-          if (Math.abs(leaveDeduction - storedDeduction) > 0.01) {
-            const finalDeductions = otherDeductions + leaveDeduction;
-            const finalNetSalary = basicSalary + allowances - finalDeductions;
-            
+          const storedTDS = parseFloat(row.tds || 0);
+          const storedTotalDeductions = parseFloat(row.deductions || 0);
+          const storedNetSalary = parseFloat(row.net_salary || 0);
+          
+          // Recalculate to ensure accuracy
+          const finalDeductions = totalDeductions;
+          const finalNetSalary = netSalary;
+          
+          // Always update if basic_salary doesn't match employee salary (source of truth)
+          const basicSalaryChanged = Math.abs(basicSalary - parseFloat(row.basic_salary || 0)) > 0.01;
+          
+          // Update if values have changed (with small tolerance for floating point)
+          const tdsChanged = Math.abs(tds - storedTDS) > 0.01;
+          const leaveChanged = Math.abs(leaveDeduction - storedDeduction) > 0.01;
+          const deductionsChanged = Math.abs(finalDeductions - storedTotalDeductions) > 0.01;
+          const netSalaryChanged = Math.abs(finalNetSalary - storedNetSalary) > 0.01;
+          
+          if (basicSalaryChanged || tdsChanged || leaveChanged || deductionsChanged || netSalaryChanged) {
             await pool.query(
               `UPDATE payroll SET 
-                deductions = $1, 
-                leave_deduction = $2, 
-                net_salary = $3
-               WHERE id = $4`,
-              [finalDeductions, leaveDeduction, finalNetSalary, row.payroll_id]
+                basic_salary = $1,
+                deductions = $2, 
+                leave_deduction = $3,
+                tds = $4,
+                net_salary = $5
+               WHERE id = $6`,
+              [basicSalary, finalDeductions, leaveDeduction, tds, finalNetSalary, row.payroll_id]
             );
             
-            console.log(`✅ Updated payroll ${row.payroll_id} with new leave deduction: ₹${leaveDeduction.toFixed(2)} (was ₹${storedDeduction.toFixed(2)})`);
+            console.log(`✅ Updated payroll ${row.payroll_id} for employee ${row.employee_id}:`);
+            console.log(`   Basic Salary: ₹${basicSalary.toFixed(2)} (was ₹${parseFloat(row.basic_salary || 0).toFixed(2)})`);
+            console.log(`   TDS: ₹${tds.toFixed(2)} (was ₹${storedTDS.toFixed(2)})`);
+            console.log(`   Leave Deduction: ₹${leaveDeduction.toFixed(2)} (was ₹${storedDeduction.toFixed(2)})`);
+            console.log(`   Total Deductions: ₹${finalDeductions.toFixed(2)} (was ₹${storedTotalDeductions.toFixed(2)})`);
+            console.log(`   Net Salary: ₹${finalNetSalary.toFixed(2)} (was ₹${storedNetSalary.toFixed(2)})`);
           }
         }
         
@@ -325,6 +406,7 @@ export const getPayrolls = async (req, res) => {
           allowances: allowances,
           deductions: totalDeductions,
           leave_deduction: leaveDeduction,
+          tds: tds,
           net_salary: netSalary,
           status: row.status || 'pending',
           payment_status: row.payment_status
@@ -420,49 +502,67 @@ export const createPayroll = async (req, res) => {
     if (existing.rows.length > 0) {
       // If payroll exists, recalculate with leave deduction and update
       const existingPayroll = existing.rows[0];
+      // ALWAYS use employee's salary from database as source of truth
+      // Never use basic_salary from request body or existing payroll - employee salary is correct
       const employeeSalary = parseFloat(employee.rows[0].salary || 0);
-      const finalSalary = basic_salary !== undefined ? parseFloat(basic_salary) : (existingPayroll.basic_salary || employeeSalary);
+      const finalSalary = employeeSalary; // Always use employee salary
       
       // Recalculate leave deduction
       const leaveDeduction = await calculateLeaveDeduction(employee_id, month, year, finalSalary);
       
       const finalAllowances = parseFloat(allowances !== undefined ? allowances : (existingPayroll.allowances || 0));
-      const baseDeductions = parseFloat(deductions !== undefined ? deductions : (existingPayroll.deductions || 0) - (existingPayroll.leave_deduction || 0));
-      const finalDeductions = baseDeductions + leaveDeduction;
+      const tds = await calculateTDS(finalSalary, finalAllowances);
+      const baseDeductions = parseFloat(deductions !== undefined ? deductions : (existingPayroll.deductions || 0) - (existingPayroll.leave_deduction || 0) - (existingPayroll.tds || 0));
+      const finalDeductions = baseDeductions + leaveDeduction + tds;
       const net_salary = finalSalary + finalAllowances - finalDeductions;
       const updatedStatus = status || existingPayroll.status;
       
       const updateResult = await pool.query(
-        `UPDATE payroll SET basic_salary = $1, allowances = $2, deductions = $3, leave_deduction = $4, net_salary = $5, status = $6 WHERE id = $7 RETURNING *`,
-        [finalSalary, finalAllowances, finalDeductions, leaveDeduction, net_salary, updatedStatus, existingPayroll.id]
+        `UPDATE payroll SET basic_salary = $1, allowances = $2, deductions = $3, leave_deduction = $4, tds = $5, net_salary = $6, status = $7 WHERE id = $8 RETURNING *`,
+        [finalSalary, finalAllowances, finalDeductions, leaveDeduction, tds, net_salary, updatedStatus, existingPayroll.id]
       );
       return res.json(updateResult.rows[0]);
     }
 
-    // Use provided salary or employee's salary from database, default to 0 if neither exists
+    // ALWAYS use employee's salary from database as source of truth
+    // Never use basic_salary from request body - it might be incorrect
+    // The employee's salary (₹20,000) is the correct value
     const employeeSalary = parseFloat(employee.rows[0].salary || 0);
-    const finalSalary = basic_salary !== undefined ? parseFloat(basic_salary) : employeeSalary;
+    const finalSalary = employeeSalary; // Always use employee salary, ignore basic_salary from request
+    
+    // Warn if basic_salary was provided but differs from employee salary
+    if (basic_salary !== undefined) {
+      const providedSalary = parseFloat(basic_salary);
+      if (Math.abs(providedSalary - employeeSalary) > 0.01) {
+        console.log(`⚠️ WARNING: Provided basic_salary (₹${providedSalary.toFixed(2)}) differs from employee salary (₹${employeeSalary.toFixed(2)}). Using employee salary.`);
+      }
+    }
     
     // Calculate leave deduction (if employee has more than 2 leaves in the month)
     const leaveDeduction = await calculateLeaveDeduction(employee_id, month, year, finalSalary);
     
     const finalAllowances = parseFloat(allowances || 0);
-    const finalDeductions = parseFloat(deductions || 0) + leaveDeduction; // Add leave deduction to deductions
+    const tds = calculateTDS(finalSalary, finalAllowances);
+    const baseDeductions = parseFloat(deductions || 0);
+    const finalDeductions = baseDeductions + leaveDeduction + tds; // Add leave deduction and TDS to deductions
     const net_salary = finalSalary + finalAllowances - finalDeductions;
     const payrollStatus = status || 'pending'; // Default to 'pending' if not provided
     
-    console.log(`Payroll calculation for employee ${employee_id} (${month}/${year}):`);
-    console.log(`  Basic Salary: $${finalSalary.toFixed(2)}`);
-    console.log(`  Allowances: $${finalAllowances.toFixed(2)}`);
-    console.log(`  Deductions (including leave deduction): $${finalDeductions.toFixed(2)}`);
-    console.log(`  Leave Deduction: $${leaveDeduction.toFixed(2)}`);
-    console.log(`  Net Salary: $${net_salary.toFixed(2)}`);
+    console.log(`✅ Payroll calculation for employee ${employee_id} (${month}/${year}):`);
+    console.log(`  Employee Salary (Source of Truth): ₹${employeeSalary.toFixed(2)}`);
+    console.log(`  Basic Salary (Used): ₹${finalSalary.toFixed(2)}`);
+    console.log(`  Allowances: ₹${finalAllowances.toFixed(2)}`);
+    console.log(`  TDS: ₹${tds.toFixed(2)}`);
+    console.log(`  Leave Deduction: ₹${leaveDeduction.toFixed(2)}`);
+    console.log(`  Other Deductions: ₹${baseDeductions.toFixed(2)}`);
+    console.log(`  Total Deductions: ₹${finalDeductions.toFixed(2)}`);
+    console.log(`  Net Salary: ₹${net_salary.toFixed(2)}`);
 
     const result = await pool.query(
-      `INSERT INTO payroll (employee_id, month, year, basic_salary, allowances, deductions, leave_deduction, net_salary, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO payroll (employee_id, month, year, basic_salary, allowances, deductions, leave_deduction, tds, net_salary, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
-      [employee_id, month, year, finalSalary, finalAllowances, finalDeductions, leaveDeduction, net_salary, payrollStatus]
+      [employee_id, month, year, finalSalary, finalAllowances, finalDeductions, leaveDeduction, tds, net_salary, payrollStatus]
     );
 
     res.status(201).json(result.rows[0]);
@@ -503,14 +603,15 @@ export const processPayroll = async (req, res) => {
         
         // Calculate leave deduction (if employee has more than 2 leaves in the month)
         const leaveDeduction = await calculateLeaveDeduction(employee.id, month, year, basic_salary);
-        const deductions = defaultDeductions + leaveDeduction; // Add leave deduction to deductions
+        const tds = await calculateTDS(basic_salary, allowances);
+        const deductions = defaultDeductions + leaveDeduction + tds; // Add leave deduction and TDS to deductions
         const net_salary = basic_salary + allowances - deductions;
 
         const result = await pool.query(
-          `INSERT INTO payroll (employee_id, month, year, basic_salary, allowances, deductions, leave_deduction, net_salary, status, processed_by, processed_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'processed', $9, CURRENT_TIMESTAMP)
+          `INSERT INTO payroll (employee_id, month, year, basic_salary, allowances, deductions, leave_deduction, tds, net_salary, status, processed_by, processed_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'processed', $10, CURRENT_TIMESTAMP)
            RETURNING *`,
-          [employee.id, month, year, basic_salary, allowances, deductions, leaveDeduction, net_salary, userId]
+          [employee.id, month, year, basic_salary, allowances, deductions, leaveDeduction, tds, net_salary, userId]
         );
 
         results.push(result.rows[0]);
@@ -538,19 +639,31 @@ export const updatePayroll = async (req, res) => {
     }
 
     const existingPayroll = payroll.rows[0];
-    const basic = basic_salary !== undefined ? parseFloat(basic_salary) : parseFloat(existingPayroll.basic_salary || 0);
+    const previousStatus = existingPayroll.status;
+    
+    // ALWAYS use employee's salary from database as source of truth
+    // Never use basic_salary from request body or existing payroll - employee salary is correct
+    const employee = await pool.query('SELECT * FROM employees WHERE id = $1', [existingPayroll.employee_id]);
+    if (employee.rows.length === 0) {
+      return res.status(404).json({ message: 'Employee not found' });
+    }
+    const employeeSalary = parseFloat(employee.rows[0].salary || 0);
+    const basic = employeeSalary; // Always use employee salary, ignore basic_salary from request
     const allow = allowances !== undefined ? parseFloat(allowances) : parseFloat(existingPayroll.allowances || 0);
     
     // Recalculate leave deduction based on current month/year
     const leaveDeduction = await calculateLeaveDeduction(existingPayroll.employee_id, existingPayroll.month, existingPayroll.year, basic);
     
-    // Calculate base deductions (excluding previous leave deduction)
+    // Calculate TDS
+    const tds = await calculateTDS(basic, allow);
+    
+    // Calculate base deductions (excluding previous leave deduction and TDS)
     const baseDeductions = deductions !== undefined 
       ? parseFloat(deductions) 
-      : (parseFloat(existingPayroll.deductions || 0) - parseFloat(existingPayroll.leave_deduction || 0));
+      : (parseFloat(existingPayroll.deductions || 0) - parseFloat(existingPayroll.leave_deduction || 0) - parseFloat(existingPayroll.tds || 0));
     
-    // Add leave deduction to base deductions
-    const finalDeductions = baseDeductions + leaveDeduction;
+    // Add leave deduction and TDS to base deductions
+    const finalDeductions = baseDeductions + leaveDeduction + tds;
     const net_salary = basic + allow - finalDeductions;
 
     // Handle status update - if status is provided, use it; otherwise keep current status
@@ -568,13 +681,25 @@ export const updatePayroll = async (req, res) => {
         allowances = COALESCE($2, allowances),
         deductions = COALESCE($3, deductions),
         leave_deduction = COALESCE($4, leave_deduction),
-        net_salary = $5,
-        status = COALESCE($6, status),
-        processed_at = CASE WHEN $6 IN ('processed', 'paid') AND status NOT IN ('processed', 'paid') THEN CURRENT_TIMESTAMP ELSE processed_at END
-      WHERE id = $7
+        tds = COALESCE($5, tds),
+        net_salary = $6,
+        status = COALESCE($7, status),
+        processed_at = CASE WHEN $7 IN ('processed', 'paid') AND status NOT IN ('processed', 'paid') THEN CURRENT_TIMESTAMP ELSE processed_at END
+      WHERE id = $8
       RETURNING *`,
-      [basic, allow, finalDeductions, leaveDeduction, net_salary, updatedStatus, id]
+      [basic, allow, finalDeductions, leaveDeduction, tds, net_salary, updatedStatus, id]
     );
+
+    // AUTO-SYNC: If status changed to 'paid', sync salary to accounting
+    if (updatedStatus === 'paid' && previousStatus !== 'paid') {
+      try {
+        await syncSalaryToAccounting(existingPayroll.month, existingPayroll.year);
+        console.log(`✅ Auto-synced salary to accounting for ${existingPayroll.month}/${existingPayroll.year}`);
+      } catch (syncError) {
+        console.error('⚠️ Error syncing salary to accounting (non-blocking):', syncError);
+        // Don't fail the payroll update if sync fails
+      }
+    }
 
     res.json(result.rows[0]);
   } catch (error) {
@@ -584,5 +709,66 @@ export const updatePayroll = async (req, res) => {
   }
 };
 
+// Helper function to sync salary to accounting
+const syncSalaryToAccounting = async (month, year) => {
+  try {
+    // Calculate total paid salaries - use gross salary (basic_salary + allowances) for accounting
+    // This represents the total cost to the company, not net salary after deductions
+    const payrollResult = await pool.query(
+      `SELECT COALESCE(SUM(basic_salary + allowances), 0) as total_salary
+       FROM payroll
+       WHERE month = $1 AND year = $2 
+       AND status = 'paid'
+       AND (basic_salary + allowances) > 0`,
+      [month, year]
+    );
+    
+    const totalSalary = parseFloat(payrollResult.rows[0].total_salary) || 0;
+    console.log(`📊 Syncing salary for ${month}/${year}: Found ₹${totalSalary} in paid salaries (gross: basic + allowances)`);
 
+    // Check if accounting_entries table exists
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'accounting_entries'
+      )
+    `);
+
+    if (!tableCheck.rows[0].exists) {
+      console.log('⚠️ Accounting entries table does not exist, skipping sync');
+      return; // Accounting table doesn't exist, skip sync
+    }
+
+    // Find or create "Salary & Wages" entry
+    let salaryEntry = await pool.query(
+      `SELECT id FROM accounting_entries 
+       WHERE head = 'Salary & Wages' AND month = $1 AND year = $2`,
+      [month, year]
+    );
+
+    if (salaryEntry.rows.length === 0) {
+      // Create the entry if it doesn't exist
+      await pool.query(
+        `INSERT INTO accounting_entries 
+         (head, subhead, tds_percentage, gst_percentage, frequency, remarks, amount, month, year)
+         VALUES ('Salary & Wages', NULL, 10, 0, 'Monthly', 'Employee salaries and wages (Auto-synced from payroll)', $1, $2, $3)`,
+        [totalSalary, month, year]
+      );
+      console.log(`✅ Created salary entry in accounting: ₹${totalSalary}`);
+    } else {
+      // Update existing entry
+      await pool.query(
+        `UPDATE accounting_entries 
+         SET amount = $1, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $2`,
+        [totalSalary, salaryEntry.rows[0].id]
+      );
+      console.log(`✅ Updated salary entry in accounting: ₹${totalSalary}`);
+    }
+  } catch (error) {
+    console.error('Error in syncSalaryToAccounting:', error);
+    throw error; // Re-throw to be caught by caller
+  }
+};
 

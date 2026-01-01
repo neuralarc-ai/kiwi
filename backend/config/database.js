@@ -46,6 +46,8 @@ export const initializeDatabase = async () => {
         salary DECIMAL(10, 2),
         profile_photo VARCHAR(500),
         address TEXT,
+        employee_type VARCHAR(50) DEFAULT 'Employee',
+        status VARCHAR(20) DEFAULT 'active',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -125,6 +127,19 @@ export const initializeDatabase = async () => {
           WHERE table_name = 'payroll' AND column_name = 'leave_deduction'
         ) THEN
           ALTER TABLE payroll ADD COLUMN leave_deduction DECIMAL(10, 2) DEFAULT 0;
+        END IF;
+      END $$;
+    `);
+
+    // Add tds column if it doesn't exist (for existing databases)
+    await pool.query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'payroll' AND column_name = 'tds'
+        ) THEN
+          ALTER TABLE payroll ADD COLUMN tds DECIMAL(10, 2) DEFAULT 0;
         END IF;
       END $$;
     `);
@@ -342,6 +357,12 @@ export const initializeDatabase = async () => {
       ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'on_leave', 'inactive'))
     `);
 
+    // Update employees table to include employee_type
+    await pool.query(`
+      ALTER TABLE employees 
+      ADD COLUMN IF NOT EXISTS employee_type VARCHAR(50) DEFAULT 'Employee'
+    `);
+
     // Create indexes for better performance
     await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_attendance_employee_date ON attendance(employee_id, date)
@@ -361,6 +382,26 @@ export const initializeDatabase = async () => {
 
     await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_performance_employee_month_year ON performance(employee_id, month, year)
+    `);
+
+    // Accounting entries table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS accounting_entries (
+        id SERIAL PRIMARY KEY,
+        head VARCHAR(255) NOT NULL,
+        subhead VARCHAR(255),
+        tds_percentage DECIMAL(5, 2) DEFAULT 0,
+        gst_percentage DECIMAL(5, 2) DEFAULT 0,
+        frequency VARCHAR(50),
+        remarks TEXT,
+        amount DECIMAL(15, 2) DEFAULT 0,
+        entry_id INTEGER,
+        month INTEGER NOT NULL CHECK (month >= 1 AND month <= 12),
+        year INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(head, subhead, month, year)
+      )
     `);
 
     console.log('✅ Database tables initialized successfully');

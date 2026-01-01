@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom'
 
 export default function RegisterPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-blue-50 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden" style={{ backgroundColor: 'var(--page-background)' }}>
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         {[...Array(20)].map((_, i) => (
@@ -107,11 +107,11 @@ export default function RegisterPage() {
               <input type="checkbox" className="rounded mt-1 flex-shrink-0" />
               <span className="text-muted-foreground break-words">
                 I agree to the{' '}
-                <a href="#" className="text-blue-600 hover:text-blue-700 transition-colors">
+                <a href="#" className="text-black dark:text-white hover:opacity-80 transition-colors">
                   Terms of Service
                 </a>{' '}
                 and{' '}
-                <a href="#" className="text-blue-600 hover:text-blue-700 transition-colors">
+                <a href="#" className="text-black dark:text-white hover:opacity-80 transition-colors">
                   Privacy Policy
                 </a>
               </span>
@@ -130,7 +130,7 @@ export default function RegisterPage() {
             className="mt-6 text-center text-sm text-muted-foreground"
           >
             Already have an account?{' '}
-            <Link to="/login" className="text-blue-600 hover:text-blue-700 transition-colors">
+            <Link to="/login" className="text-black dark:text-white hover:opacity-80 transition-colors">
               Sign In
             </Link>
           </motion.div>

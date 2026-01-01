@@ -22,7 +22,14 @@ const departments = [
   'Design',
   'Product',
   'Support',
-  'Legal'
+  'Legal',
+  'Others'
+]
+
+const employeeTypes = [
+  'Employee',
+  'Consultant',
+  'Others'
 ]
 
 export default function AddEmployeeModal({ isOpen, onClose, onSuccess, employee }: AddEmployeeModalProps) {
@@ -42,7 +49,8 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, employee 
     hire_date: '',
     salary: '',
     address: '',
-    status: 'active'
+    status: 'active',
+    employee_type: 'Employee'
   })
 
   useEffect(() => {
@@ -58,7 +66,8 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, employee 
         hire_date: employee.hire_date ? employee.hire_date.split('T')[0] : '',
         salary: employee.salary || '',
         address: employee.address || '',
-        status: employee.status || 'active'
+        status: employee.status || 'active',
+        employee_type: employee.employee_type || 'Employee'
       })
       // Set photo preview if employee has a photo
       if (employee.profile_photo) {
@@ -78,7 +87,8 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, employee 
         hire_date: '',
         salary: '',
         address: '',
-        status: 'active'
+        status: 'active',
+        employee_type: 'Employee'
       })
       setPhotoPreview(null)
       setPhotoFile(null)
@@ -203,7 +213,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, employee 
                   </button>
                 </div>
               ) : (
-                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center border-4 border-gray-300 dark:border-gray-600 shadow-lg">
+                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center border-4 border-gray-300 dark:border-gray-600 shadow-lg">
                   <User size={48} className="text-white" />
                 </div>
               )}
@@ -277,6 +287,22 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, employee 
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
+              <label className="block text-sm font-medium mb-2">Employee Type *</label>
+              <select
+                value={formData.employee_type}
+                onChange={(e) => setFormData({ ...formData, employee_type: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white dark:bg-gray-700 dark:border-gray-600"
+                required
+              >
+                {employeeTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
               <label className="block text-sm font-medium mb-2">Department *</label>
               <select
                 value={formData.department}
@@ -292,7 +318,9 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, employee 
                 ))}
               </select>
             </div>
+          </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-2">Position</label>
               <Input

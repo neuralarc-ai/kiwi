@@ -12,6 +12,7 @@ import settingsRoutes from './routes/settings.routes.js';
 import recruitmentRoutes from './routes/recruitment.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
 import performanceRoutes from './routes/performance.routes.js';
+import accountingRoutes from './routes/accounting.routes.js';
 
 dotenv.config();
 
@@ -80,6 +81,8 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/recruitment', recruitmentRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/performance', performanceRoutes);
+app.use('/api/accounting', accountingRoutes);
+console.log('✅ Accounting routes registered at /api/accounting');
 
 // Log registered routes
 console.log('✅ Routes registered:');
@@ -93,6 +96,7 @@ console.log('   - /api/settings/*');
 console.log('   - /api/recruitment/*');
 console.log('   - /api/dashboard/*');
 console.log('   - /api/performance/*');
+console.log('   - /api/accounting/*');
 console.log('✅ CORS enabled for:');
 allowedOrigins.forEach(origin => console.log(`   - ${origin}`));
 
@@ -111,7 +115,9 @@ app.use('/api/*', (req, res) => {
       'POST /api/auth/register',
       'POST /api/auth/register-first',
       'GET /api/health',
-      'GET /api/dashboard/stats'
+      'GET /api/dashboard/stats',
+      'GET /api/accounting?month=X&year=Y',
+      'PUT /api/accounting/:id'
     ]
   });
 });

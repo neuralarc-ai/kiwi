@@ -14,6 +14,8 @@ import PerformancePage from './pages/PerformancePage'
 import SettingsPage from './pages/SettingsPage'
 import ProfilePage from './pages/ProfilePage'
 import EmployeeProfile from './pages/EmployeeProfile'
+import AccountPage from './pages/AccountPage'
+import VendorsPage from './pages/VendorsPage'
 
 function App() {
   return (
@@ -38,6 +40,8 @@ function App() {
               <Route path="attendance" element={<AttendanceTracking />} />
               <Route path="recruitment" element={<RecruitmentPage />} />
               <Route path="payroll" element={<PayrollPage />} />
+              <Route path="account" element={<AccountPage />} />
+              <Route path="vendors" element={<VendorsPage />} />
               <Route path="performance" element={<PerformancePage />} />
               <Route path="profile" element={<ProfilePage />} />
               <Route path="settings" element={<SettingsPage />} />

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { apiService, type Employee } from '@/services/api'
+import { useToast, ToastContainer } from '@/components/ui/toast'
 
 interface PerformanceData {
   id?: number
@@ -21,6 +22,7 @@ interface PerformanceData {
 
 export default function PerformancePage() {
   const { user, token } = useAuth()
+  const toast = useToast()
   const [performances, setPerformances] = useState<PerformanceData[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -73,17 +75,17 @@ export default function PerformancePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!token) {
-      alert('Please log in to add performance')
+      toast.warning('Please log in to add performance')
       return
     }
 
     if (formData.employee_id === 0) {
-      alert('Please select an employee')
+      toast.warning('Please select an employee')
       return
     }
 
     if (formData.performance_percentage < 0 || formData.performance_percentage > 100) {
-      alert('Performance percentage must be between 0 and 100')
+      toast.warning('Performance percentage must be between 0 and 100')
       return
     }
 
@@ -99,11 +101,11 @@ export default function PerformancePage() {
       await loadData()
       setShowForm(false)
       setFormData({ employee_id: 0, performance_percentage: 0 })
-      alert('Performance saved successfully!')
+      toast.success('Performance saved successfully!')
     } catch (err: any) {
       console.error('Error saving performance:', err)
       const errorMessage = err?.response?.data?.message || err?.message || 'Failed to save performance'
-      alert(errorMessage)
+      toast.error(errorMessage)
     }
   }
 
@@ -114,26 +116,28 @@ export default function PerformancePage() {
     try {
       await apiService.deletePerformance(id, token)
       await loadData()
-      alert('Performance deleted successfully!')
+      toast.success('Performance deleted successfully!')
     } catch (err: any) {
-      alert(err?.message || 'Failed to delete performance')
+      toast.error(err?.message || 'Failed to delete performance')
     }
   }
 
   const getPerformanceColor = (percentage: number) => {
-    if (percentage >= 80) return 'text-green-600 dark:text-green-400'
-    if (percentage >= 60) return 'text-yellow-600 dark:text-yellow-400'
-    return 'text-red-600 dark:text-red-400'
+    if (percentage >= 80) return 'text-green-400'
+    if (percentage >= 60) return 'text-yellow-400'
+    return 'text-red-400'
   }
 
   return (
-    <div className="space-y-6 overflow-x-hidden max-w-full">
+    <>
+      <ToastContainer toasts={toast.toasts} onClose={toast.removeToast} />
+      <div className="space-y-6 overflow-x-hidden max-w-full">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 overflow-x-hidden max-w-full">
         <div className="flex-1 min-w-0 overflow-x-hidden">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent truncate">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-black dark:text-white truncate">
             Employee Performance
           </h1>
-          <p className="text-xs sm:text-sm md:text-base text-muted-foreground mt-1 truncate">Manage employee performance records</p>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1 truncate">Manage employee performance records</p>
         </div>
         {isAdmin && token && (
           <Button
@@ -367,5 +371,6 @@ export default function PerformancePage() {
         </CardContent>
       </Card>
     </div>
+    </>
   )
 }

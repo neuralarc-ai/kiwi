@@ -8,7 +8,7 @@ function DashboardContent() {
   const { isCollapsed, isMobile } = useSidebar()
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 overflow-x-hidden max-w-full relative">
+    <div className="min-h-screen overflow-x-hidden max-w-full relative" style={{ backgroundColor: 'var(--page-background)' }}>
       <Sidebar />
       <div className={cn(
         "transition-all duration-300 overflow-x-hidden min-w-0 box-border",

@@ -53,6 +53,7 @@ export const createEmployee = async (req, res) => {
       salary,
       address,
       status,
+      employee_type,
     } = req.body;
 
     // Validate required fields
@@ -79,10 +80,10 @@ export const createEmployee = async (req, res) => {
     const result = await pool.query(
       `INSERT INTO employees (
         employee_id, first_name, last_name, email, phone, department, 
-        position, hire_date, salary, address, status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
+        position, hire_date, salary, address, status, employee_type
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
       RETURNING *`,
-      [finalEmployeeId, first_name, last_name, email, phone, department, position, hire_date, salary, address, status || 'active']
+      [finalEmployeeId, first_name, last_name, email, phone, department, position, hire_date, salary, address, status || 'active', employee_type || 'Employee']
     );
 
     res.status(201).json(result.rows[0]);
@@ -106,6 +107,7 @@ export const updateEmployee = async (req, res) => {
       salary,
       address,
       status,
+      employee_type,
     } = req.body;
 
     // Check if employee exists
@@ -134,10 +136,11 @@ export const updateEmployee = async (req, res) => {
         salary = COALESCE($8, salary),
         address = COALESCE($9, address),
         status = COALESCE($10, status),
+        employee_type = COALESCE($11, employee_type),
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $11 
+      WHERE id = $12 
       RETURNING *`,
-      [first_name, last_name, email, phone, department, position, hire_date, salary, address, status, id]
+      [first_name, last_name, email, phone, department, position, hire_date, salary, address, status, employee_type, id]
     );
 
     res.json(result.rows[0]);

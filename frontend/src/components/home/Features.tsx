@@ -13,13 +13,13 @@ const features = [
     icon: Calendar,
     title: 'Attendance Tracking',
     description: 'Automated attendance monitoring with calendar views and detailed reports. Track employee time and attendance effortlessly.',
-    color: 'indigo',
+    color: 'gray',
   },
   {
     icon: Briefcase,
     title: 'Recruitment Pipeline',
     description: 'Streamline your hiring process with a visual recruitment pipeline. Manage candidates from application to onboarding.',
-    color: 'purple',
+    color: 'gray',
   },
   {
     icon: DollarSign,

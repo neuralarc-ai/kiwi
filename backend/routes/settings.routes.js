@@ -13,8 +13,8 @@ router.use(authenticate);
 
 router.get('/', getSettings);
 router.get('/:key', getSetting);
-router.put('/', authorize('admin'), updateSettings);
-router.put('/:key', authorize('admin'), updateSetting);
+router.put('/', authorize('admin', 'hr'), updateSettings);
+router.put('/:key', authorize('admin', 'hr'), updateSetting);
 
 export default router;
 

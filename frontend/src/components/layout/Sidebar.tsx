@@ -7,8 +7,10 @@ import {
   Settings,
   DollarSign,
   TrendingUp,
+  Calculator,
   Menu,
-  X
+  X,
+  Building2
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { useSidebar } from '@/contexts/SidebarContext'
@@ -21,7 +23,9 @@ const menuItems = [
   { icon: Calendar, label: 'Attendance', path: '/dashboard/attendance' },
   { icon: Briefcase, label: 'Recruitment', path: '/dashboard/recruitment' },
   { icon: DollarSign, label: 'Payroll Management', path: '/dashboard/payroll' },
+  { icon: Building2, label: 'Vendors', path: '/dashboard/vendors' },
   { icon: TrendingUp, label: 'Performance', path: '/dashboard/performance' },
+  { icon: Calculator, label: 'Account', path: '/dashboard/account' },
   { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
 ]
 
@@ -89,14 +93,29 @@ export default function Sidebar() {
                   setTimeout(() => closeMobileSidebar(), 100)
                 }
               }}
+              style={({ isActive }) => isActive ? { backgroundColor: 'oklch(94% .01 60)', color: 'black' } : undefined}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg transition-all duration-300 group relative overflow-hidden min-h-[44px] w-full",
+                  "flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg transition-all duration-300 group relative overflow-visible min-h-[44px] w-full",
                   isActive
-                    ? "bg-blue-50 dark:bg-blue-500/20 text-blue-700 dark:text-white border border-blue-200 dark:border-blue-500/30"
-                    : "text-muted-foreground hover:text-foreground hover:bg-white/5 dark:hover:bg-white/5"
+                    ? "text-black border"
+                    : "text-muted-foreground hover:text-foreground"
                 )
               }
+              onMouseEnter={(e) => {
+                const navLink = e.currentTarget
+                const isActive = navLink.getAttribute('aria-current') === 'page'
+                if (!isActive) {
+                  navLink.style.backgroundColor = 'oklch(94% .01 60)'
+                }
+              }}
+              onMouseLeave={(e) => {
+                const navLink = e.currentTarget
+                const isActive = navLink.getAttribute('aria-current') === 'page'
+                if (!isActive) {
+                  navLink.style.backgroundColor = ''
+                }
+              }}
             >
               {({ isActive }) => (
                 <>
@@ -104,21 +123,26 @@ export default function Sidebar() {
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ delay: index * 0.1 }}
-                    className="flex-shrink-0"
+                    className="flex-shrink-0 relative z-10"
                   >
                     <item.icon 
                       size={isMobile ? 18 : 20} 
-                      className={cn(
-                        "transition-transform group-hover:scale-110",
-                        isActive && "text-blue-600 dark:text-blue-400"
-                      )} 
+                      className="transition-transform group-hover:scale-110"
+                      style={isActive ? { color: 'black' } : undefined}
                     />
                   </motion.div>
                   {(!isCollapsed || isMobile) && (
                     <motion.span
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      className="font-medium text-sm sm:text-base truncate"
+                      className="font-medium text-sm sm:text-base truncate relative z-10"
+                    >
+                      {item.label}
+                    </motion.span>
+                  )}
+                  {isCollapsed && !isMobile && (
+                    <motion.span
+                      className="hidden group-hover:block absolute left-full ml-2 px-2 py-1 rounded bg-white dark:bg-gray-800 shadow-lg whitespace-nowrap z-50 text-sm font-medium"
                     >
                       {item.label}
                     </motion.span>
@@ -126,7 +150,8 @@ export default function Sidebar() {
                   {isActive && (
                     <motion.div
                       layoutId="activeTab"
-                      className="absolute inset-0 bg-blue-50/50 dark:bg-blue-500/10 rounded-lg"
+                      className="absolute inset-0 rounded-lg z-0"
+                      style={{ backgroundColor: 'oklch(94% .01 60)' }}
                       transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                     />
                   )}

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { apiService } from '@/services/api'
+import { useToast, ToastContainer } from '@/components/ui/toast'
 import { useAuth } from '@/contexts/AuthContext'
 import AddJobPostingModal from '@/components/AddJobPostingModal'
 
@@ -28,6 +29,7 @@ interface JobPosting {
 
 export default function RecruitmentPage() {
   const { token } = useAuth()
+  const toast = useToast()
   const [jobPostings, setJobPostings] = useState<JobPosting[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -60,7 +62,7 @@ export default function RecruitmentPage() {
       await apiService.deleteJobPosting(id, token)
       fetchJobPostings()
     } catch (error: any) {
-      alert(error?.message || 'Failed to delete job posting')
+      toast.error(error?.message || 'Failed to delete job posting')
     }
   }
 
@@ -123,15 +125,17 @@ export default function RecruitmentPage() {
   }
 
   return (
-    <div className="space-y-6 overflow-x-hidden max-w-full">
+    <>
+      <ToastContainer toasts={toast.toasts} onClose={toast.removeToast} />
+      <div className="space-y-6 overflow-x-hidden max-w-full">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 overflow-x-hidden max-w-full"
       >
         <div className="flex-1 min-w-0 overflow-x-hidden">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 gradient-text truncate">Recruitment</h1>
-          <p className="text-xs sm:text-sm md:text-base text-muted-foreground truncate">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-2 gradient-text truncate">Recruitment</h1>
+          <p className="text-sm sm:text-base text-muted-foreground truncate">
             Manage job postings ({filteredJobPostings.length} {filteredJobPostings.length === 1 ? 'active job' : 'active jobs'})
           </p>
         </div>
@@ -284,12 +288,6 @@ export default function RecruitmentPage() {
                       </p>
                     )}
                   </div>
-
-                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <span className="text-xs text-muted-foreground">
-                      {job.total_applications || 0} {job.total_applications === 1 ? 'application' : 'applications'}
-                    </span>
-                  </div>
                 </CardContent>
               </Card>
             </motion.div>
@@ -305,5 +303,6 @@ export default function RecruitmentPage() {
         job={editingJob}
       />
     </div>
+    </>
   )
 }

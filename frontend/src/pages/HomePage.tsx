@@ -5,7 +5,7 @@ import Footer from '@/components/home/Footer'
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-white overflow-x-hidden max-w-full">
+    <div className="min-h-screen overflow-x-hidden max-w-full" style={{ backgroundColor: 'var(--page-background)' }}>
       <HomeNavbar />
       <main className="overflow-x-hidden max-w-full">
         <Hero />

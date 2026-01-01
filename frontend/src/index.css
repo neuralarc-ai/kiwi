@@ -33,6 +33,7 @@
     --color-absent: hsl(0, 68%, 61%);
     --color-late: hsl(45, 93%, 47%);
     --color-onLeave: hsl(217, 91%, 60%);
+    --page-background: oklch(94% 0.01 60);
   }
 
   .dark {
@@ -64,6 +65,7 @@
     --color-absent: hsl(0, 87%, 67%);
     --color-late: hsl(45, 93%, 47%);
     --color-onLeave: hsl(217, 91%, 60%);
+    --page-background: oklch(20% 0.01 60);
   }
 }
 
@@ -261,7 +263,7 @@
   }
 
   .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600;
+    @apply text-black dark:text-white;
   }
 
   .glow-effect {

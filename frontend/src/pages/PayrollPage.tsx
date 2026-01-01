@@ -1,12 +1,14 @@
 import { motion } from 'framer-motion'
-import { IndianRupee, Search } from 'lucide-react'
+import { IndianRupee, Search, Receipt, X, Download } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { useState, useEffect, useMemo } from 'react'
+import { Button } from '@/components/ui/button'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { apiService, type Payroll } from '@/services/api'
+import PaymentReceipt from '@/components/PaymentReceipt'
 
 export default function PayrollPage() {
   const { user, token } = useAuth()
@@ -17,9 +19,20 @@ export default function PayrollPage() {
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1)
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [selectedEmployeeForReceipt, setSelectedEmployeeForReceipt] = useState<{ payroll: Payroll } | null>(null)
   const isAdmin = user?.role === 'admin' || user?.role === 'hr_executive'
 
-  const fetchPayrolls = async () => {
+  // Debug: Log when selectedEmployeeForReceipt changes
+  useEffect(() => {
+    if (selectedEmployeeForReceipt) {
+      console.log('✅ Modal should be visible. selectedEmployeeForReceipt:', selectedEmployeeForReceipt)
+      console.log('✅ Payroll data:', selectedEmployeeForReceipt.payroll)
+    } else {
+      console.log('❌ Modal closed. selectedEmployeeForReceipt is null')
+    }
+  }, [selectedEmployeeForReceipt])
+
+  const fetchPayrolls = useCallback(async () => {
     if (!token) {
       setError('Authentication required')
       setLoading(false)
@@ -48,13 +61,14 @@ export default function PayrollPage() {
     } finally {
       setLoading(false)
     }
-  }
-
-  useEffect(() => {
-    fetchPayrolls()
   }, [token, selectedMonth, selectedYear])
 
-  // Listen for leave updates to refresh payroll
+  // Fetch payrolls when token, month, or year changes
+  useEffect(() => {
+    fetchPayrolls()
+  }, [fetchPayrolls])
+
+  // Listen for leave updates to refresh payroll (only on specific events, not polling)
   useEffect(() => {
     const handleLeaveUpdate = async () => {
       console.log('🔄 Leave update detected, refreshing payroll...')
@@ -77,20 +91,16 @@ export default function PayrollPage() {
     }
     window.addEventListener('storage', handleStorageChange)
 
-    // Polling for updates every 5 seconds
-    const pollInterval = setInterval(() => {
-      if (document.visibilityState === 'visible' && !loading) {
-        fetchPayrolls()
-      }
-    }, 5000)
+    // Removed aggressive polling - page will only refresh on actual events
+    // If you need periodic updates, consider increasing interval to 30-60 seconds
+    // or use a manual refresh button instead
 
     return () => {
       window.removeEventListener('attendanceUpdated', handleLeaveUpdate)
       document.removeEventListener('attendanceUpdated', handleLeaveUpdate)
       window.removeEventListener('storage', handleStorageChange)
-      clearInterval(pollInterval)
     }
-  }, [token, selectedMonth, selectedYear])
+  }, [fetchPayrolls])
 
   const filteredPayrolls = useMemo(() => {
     let filtered = payrolls
@@ -115,9 +125,9 @@ export default function PayrollPage() {
 
   const getStatusColor = (status?: string) => {
     if (status === 'paid') {
-      return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+      return 'bg-green-500/20 text-green-400 border-green-500/30'
     }
-    return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+    return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
   }
 
   const getMonthName = (month: number) => {
@@ -181,8 +191,8 @@ export default function PayrollPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2">Payroll Management</h1>
-        <p className="text-xs sm:text-sm md:text-base text-muted-foreground">Manage employee salaries and payments</p>
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-2">Payroll Management</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">Manage employee salaries and payments</p>
       </motion.div>
 
       {error && (
@@ -195,11 +205,11 @@ export default function PayrollPage() {
         </motion.div>
       )}
 
-      <Card variant="glass" className="p-3 sm:p-4 overflow-x-hidden max-w-full">
-        <div className="flex flex-col gap-3 sm:gap-4 overflow-x-hidden max-w-full">
+      <Card variant="glass" className="p-5 overflow-x-hidden max-w-full">
+        <div className="flex flex-col gap-4 overflow-x-hidden max-w-full">
           {/* Search Employee */}
           <div className="w-full min-w-0">
-            <label className="text-xs sm:text-sm font-medium mb-2 block">Search Employee</label>
+            <label className="text-sm font-medium mb-2 block">Search Employee</label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
               <Input
@@ -213,14 +223,14 @@ export default function PayrollPage() {
           </div>
 
           {/* Filters Row */}
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 overflow-x-hidden max-w-full">
+          <div className="flex flex-col sm:flex-row gap-4 overflow-x-hidden max-w-full">
             {/* Payment Status */}
             <div className="w-full sm:w-auto sm:flex-shrink-0 min-w-0">
-              <label className="text-xs sm:text-sm font-medium mb-2 block">Payment Status</label>
+              <label className="text-sm font-medium mb-2 block">Payment Status</label>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full sm:w-[140px] px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-gray-200 bg-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800/50 dark:border-gray-700 text-xs sm:text-sm"
+                className="w-full sm:w-[140px] px-3 py-2 rounded-lg border border-gray-200 bg-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800/50 dark:border-gray-700 text-sm"
               >
                 <option value="all">All</option>
                 <option value="paid">Paid</option>
@@ -230,11 +240,11 @@ export default function PayrollPage() {
 
             {/* Month */}
             <div className="w-full sm:w-auto sm:flex-shrink-0 min-w-0">
-              <label className="text-xs sm:text-sm font-medium mb-2 block">Month</label>
+              <label className="text-sm font-medium mb-2 block">Month</label>
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                className="w-full sm:w-[140px] px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-gray-200 bg-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800/50 dark:border-gray-700 text-xs sm:text-sm"
+                className="w-full sm:w-[140px] px-3 py-2 rounded-lg border border-gray-200 bg-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800/50 dark:border-gray-700 text-sm"
               >
                 {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
                   <option key={month} value={month}>{getMonthName(month)}</option>
@@ -286,7 +296,7 @@ export default function PayrollPage() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="flex flex-col sm:flex-row items-start sm:items-center gap-2 p-3 rounded-lg glass hover:bg-white/5 transition-colors overflow-x-hidden max-w-full"
+                  className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 rounded-lg glass hover:bg-white/5 transition-colors overflow-x-hidden max-w-full"
                 >
                   {/* Paid/Unpaid Filter in front */}
                   <div className="flex-shrink-0">
@@ -309,114 +319,68 @@ export default function PayrollPage() {
                             }
                           }
                         }}
-                        className={`px-2 py-1.5 rounded-lg border text-xs font-medium min-w-[90px] cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+                        className={`px-3 py-2 rounded-lg border text-sm font-medium min-w-[100px] cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
                           isPaid(payroll)
-                            ? 'bg-green-600 text-white border-green-700 hover:bg-green-700'
-                            : 'bg-yellow-50 text-yellow-700 border-yellow-300 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800 dark:hover:bg-yellow-900/30'
+                            ? 'bg-green-500/20 text-green-400 border-green-500/30 hover:bg-green-500/30'
+                            : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/30'
                         }`}
                       >
                         <option value="paid">Paid</option>
                         <option value="unpaid">Unpaid</option>
                       </select>
                     ) : (
-                      <Badge className={getStatusColor(isPaid(payroll) ? 'paid' : 'unpaid')}>
+                      <Badge className={`${getStatusColor(isPaid(payroll) ? 'paid' : 'unpaid')} text-sm`}>
                         {isPaid(payroll) ? '✓ Paid' : '✗ Unpaid'}
                       </Badge>
                     )}
                   </div>
 
                   {/* Employee Avatar */}
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold flex-shrink-0 text-xs sm:text-sm">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-white font-bold flex-shrink-0 text-sm">
                     {payroll.first_name?.[0]}{payroll.last_name?.[0]}
                   </div>
 
                   {/* Employee Info */}
                   <div className="flex-1 min-w-0 max-w-[200px] sm:max-w-none">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <h3 className="font-semibold text-xs sm:text-sm truncate">
+                      <h3 className="font-semibold text-sm truncate">
                         {payroll.first_name} {payroll.last_name}
                       </h3>
                       {payroll.emp_id && (
-                        <Badge variant="secondary" className="text-[10px] sm:text-xs">{payroll.emp_id}</Badge>
+                        <Badge variant="secondary" className="text-xs">{payroll.emp_id}</Badge>
                       )}
                       {payroll.department && (
-                        <Badge variant="secondary" className="text-[10px] sm:text-xs">{payroll.department}</Badge>
+                        <Badge variant="secondary" className="text-xs">{payroll.department}</Badge>
                       )}
                     </div>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 truncate">
+                    <p className="text-sm text-muted-foreground mt-0.5 truncate">
                       {payroll.position || 'Employee'}
                       {payroll.email && ` • ${payroll.email}`}
                     </p>
                   </div>
 
-                  {/* Salary Breakdown - Always show for all employees */}
-                  <div className="w-full sm:w-auto sm:flex-shrink-0 overflow-x-hidden max-w-full">
-                    {/* Desktop View */}
-                    <div className="hidden md:flex items-center gap-2 border-l border-gray-200 dark:border-gray-700 pl-2 max-w-full overflow-x-hidden">
-                      <div className="text-right space-y-1 w-full max-w-[180px] min-w-0">
-                        <div className="flex items-center justify-between gap-1.5 min-w-0">
-                          <span className="text-muted-foreground text-[10px] sm:text-xs whitespace-nowrap flex-shrink-0">Basic:</span>
-                          <span className="font-medium text-xs sm:text-sm truncate">₹{(payroll.basic_salary || payroll.salary || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                        </div>
-                        {payroll.allowances !== undefined && payroll.allowances !== null && payroll.allowances !== 0 && (
-                          <div className={`flex items-center justify-between gap-1.5 min-w-0 ${payroll.allowances > 0 ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
-                            <span className="text-muted-foreground text-[10px] sm:text-xs whitespace-nowrap flex-shrink-0">Allow:</span>
-                            <span className="font-medium text-xs sm:text-sm truncate">{payroll.allowances > 0 ? '+' : ''}₹{Math.abs(payroll.allowances || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                          </div>
-                        )}
-                        {/* Always show leave deduction with actual value */}
-                        <div className={`flex items-center justify-between gap-1.5 min-w-0 ${(payroll.leave_deduction || 0) > 0 ? 'text-orange-600 dark:text-orange-400 font-semibold' : 'text-muted-foreground'}`}>
-                          <span className="text-muted-foreground text-[10px] sm:text-xs whitespace-nowrap flex-shrink-0">Leave:</span>
-                          <span className={`font-medium text-xs sm:text-sm truncate ${(payroll.leave_deduction || 0) > 0 ? 'text-orange-600 dark:text-orange-400' : ''}`}>
-                            {(payroll.leave_deduction || 0) > 0 ? '-' : ''}₹{Math.abs(payroll.leave_deduction || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            {(payroll.leave_deduction || 0) === 0 && <span className="text-[10px] ml-0.5">(≤2)</span>}
-                          </span>
-                        </div>
-                        {payroll.deductions !== undefined && payroll.deductions !== null && (payroll.deductions - (payroll.leave_deduction || 0)) > 0 && (
-                          <div className="flex items-center justify-between gap-1.5 min-w-0 text-red-600 dark:text-red-400">
-                            <span className="text-muted-foreground text-[10px] sm:text-xs whitespace-nowrap flex-shrink-0">Other:</span>
-                            <span className="font-medium text-xs sm:text-sm truncate">-₹{Math.max(0, (payroll.deductions || 0) - (payroll.leave_deduction || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                          </div>
-                        )}
-                        <div className="flex items-center justify-between gap-1.5 min-w-0 pt-1.5 border-t border-gray-300 dark:border-gray-600 mt-1.5">
-                          <span className="font-bold text-xs sm:text-sm flex-shrink-0">Net:</span>
-                          <span className="font-bold text-sm sm:text-base text-blue-600 dark:text-blue-400 truncate">₹{(payroll.net_salary || (payroll.basic_salary || payroll.salary || 0) + (payroll.allowances || 0) - (payroll.deductions || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                        </div>
-                      </div>
-                    </div>
-                    {/* Mobile View */}
-                    <div className="md:hidden w-full mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                      <div className="text-sm space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground text-xs">Basic Salary:</span>
-                          <span className="font-medium">₹{(payroll.basic_salary || payroll.salary || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                        </div>
-                        {payroll.allowances !== undefined && payroll.allowances !== null && payroll.allowances !== 0 && (
-                          <div className={`flex items-center justify-between ${payroll.allowances > 0 ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
-                            <span className="text-muted-foreground text-xs">Allowances:</span>
-                            <span className="font-medium">{payroll.allowances > 0 ? '+' : ''}₹{Math.abs(payroll.allowances || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                          </div>
-                        )}
-                        {/* Always show leave deduction with actual value */}
-                        <div className={`flex items-center justify-between ${(payroll.leave_deduction || 0) > 0 ? 'text-orange-600 dark:text-orange-400 font-semibold' : 'text-muted-foreground'}`}>
-                          <span className="text-muted-foreground text-xs">Leave Deduction:</span>
-                          <span className={`font-medium ${(payroll.leave_deduction || 0) > 0 ? 'text-orange-600 dark:text-orange-400' : ''}`}>
-                            {(payroll.leave_deduction || 0) > 0 ? '-' : ''}₹{Math.abs(payroll.leave_deduction || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            {(payroll.leave_deduction || 0) === 0 && <span className="text-xs ml-1">(≤2 leaves)</span>}
-                          </span>
-                        </div>
-                        {payroll.deductions !== undefined && payroll.deductions !== null && (payroll.deductions - (payroll.leave_deduction || 0)) > 0 && (
-                          <div className="flex items-center justify-between text-red-600 dark:text-red-400">
-                            <span className="text-muted-foreground text-xs">Other Deductions:</span>
-                            <span className="font-medium">-₹{Math.max(0, (payroll.deductions || 0) - (payroll.leave_deduction || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                          </div>
-                        )}
-                        <div className="flex items-center justify-between pt-2 border-t-2 border-gray-300 dark:border-gray-600 mt-2">
-                          <span className="font-bold">Net Salary:</span>
-                          <span className="font-bold text-base text-blue-600 dark:text-blue-400">₹{(payroll.net_salary || (payroll.basic_salary || payroll.salary || 0) + (payroll.allowances || 0) - (payroll.deductions || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                        </div>
-                      </div>
-                    </div>
+                  {/* Payslip Button - All details shown only in payslip */}
+                  <div className="w-full sm:w-auto sm:flex-shrink-0 flex items-center justify-end">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="default"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        console.log('🔵 Payslip button clicked for:', payroll)
+                        console.log('🔵 Payroll data:', JSON.stringify(payroll, null, 2))
+                        setSelectedEmployeeForReceipt({ payroll })
+                        console.log('🔵 State set, modal should appear now')
+                      }}
+                      className="flex items-center gap-1.5 text-sm text-white"
+                      style={{ backgroundColor: 'oklch(62% .08 270)' }}
+                      title="View/Download Payslip"
+                    >
+                      <Receipt size={16} />
+                      <span className="hidden sm:inline">Payslip</span>
+                      <Download size={14} className="sm:hidden" />
+                    </Button>
                   </div>
                 </motion.div>
               ))}
@@ -424,6 +388,70 @@ export default function PayrollPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Payment Receipt Modal */}
+      {selectedEmployeeForReceipt && selectedEmployeeForReceipt.payroll && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4 overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setSelectedEmployeeForReceipt(null)
+            }
+          }}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white dark:bg-gray-900 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+          >
+            <div className="sticky top-0 bg-white dark:bg-gray-900 border-b p-4 flex items-center justify-between z-10 shadow-sm">
+              <h3 className="text-lg font-semibold">Employee Payslip</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  console.log('Closing modal')
+                  setSelectedEmployeeForReceipt(null)
+                }}
+                className="hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                <X size={18} />
+              </Button>
+            </div>
+            <div className="p-6">
+              {selectedEmployeeForReceipt.payroll ? (
+                (() => {
+                  console.log('Rendering PaymentReceipt with payroll:', selectedEmployeeForReceipt.payroll)
+                  const employeeName = `${selectedEmployeeForReceipt.payroll.first_name || ''} ${selectedEmployeeForReceipt.payroll.last_name || ''}`.trim()
+                  console.log('Employee name:', employeeName)
+                  return (
+                    <PaymentReceipt
+                      payroll={selectedEmployeeForReceipt.payroll}
+                      employeeName={employeeName || 'Employee'}
+                      onDownload={() => {
+                        // Optional: Close modal after download
+                        // setSelectedEmployeeForReceipt(null)
+                      }}
+                    />
+                  )
+                })()
+              ) : (
+                <div className="text-center p-8">
+                  <p className="text-red-600">Error: No payroll data available</p>
+                  <Button onClick={() => setSelectedEmployeeForReceipt(null)} className="mt-4">
+                    Close
+                  </Button>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
     </div>
   )
 }

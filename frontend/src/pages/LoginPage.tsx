@@ -35,7 +35,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-blue-50 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden" style={{ backgroundColor: 'var(--page-background)' }}>
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         {[...Array(20)].map((_, i) => (
@@ -129,7 +129,7 @@ export default function LoginPage() {
                 <input type="checkbox" className="rounded" />
                 <span className="text-muted-foreground">Remember me</span>
               </label>
-              <a href="#" className="text-blue-600 hover:text-blue-700 transition-colors">
+              <a href="#" className="text-black dark:text-white hover:opacity-80 transition-colors">
                 Forgot password?
               </a>
             </div>
@@ -147,7 +147,7 @@ export default function LoginPage() {
             className="mt-6 text-center text-sm text-muted-foreground"
           >
             Don't have an account?{' '}
-            <Link to="/register" className="text-blue-600 hover:text-blue-700 transition-colors">
+            <Link to="/register" className="text-black dark:text-white hover:opacity-80 transition-colors">
               Sign Up
             </Link>
           </motion.div>

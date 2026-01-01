@@ -11,11 +11,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from '@/component
 import { apiService, Employee } from '@/services/api'
 import { useAuth } from '@/contexts/AuthContext'
 import AddEmployeeModal from '@/components/AddEmployeeModal'
+import { useToast, ToastContainer } from '@/components/ui/toast'
 
 // Departments will be dynamically generated from actual employees
 
 export default function EmployeeDirectory() {
   const { token } = useAuth()
+  const toast = useToast()
   const navigate = useNavigate()
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
@@ -49,7 +51,7 @@ export default function EmployeeDirectory() {
       await apiService.deleteEmployee(id, token)
       fetchEmployees()
     } catch (error: any) {
-      alert(error?.message || 'Failed to delete employee')
+      toast.error(error?.message || 'Failed to delete employee')
     }
   }
 
@@ -137,15 +139,17 @@ export default function EmployeeDirectory() {
   }
 
   return (
-    <div className="space-y-6 overflow-x-hidden max-w-full">
+    <>
+      <ToastContainer toasts={toast.toasts} onClose={toast.removeToast} />
+      <div className="space-y-6 overflow-x-hidden max-w-full">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 overflow-x-hidden max-w-full"
       >
         <div className="flex-1 min-w-0 overflow-x-hidden">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 gradient-text truncate">Employee Directory</h1>
-          <p className="text-xs sm:text-sm md:text-base text-muted-foreground truncate">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-2 gradient-text truncate">Employee Directory</h1>
+          <p className="text-sm sm:text-base text-muted-foreground truncate">
             Manage and view all employees ({filteredEmployees.length} {filteredEmployees.length === 1 ? 'employee' : 'employees'})
           </p>
         </div>
@@ -226,10 +230,10 @@ export default function EmployeeDirectory() {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-4"
           >
-            <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-foreground">
+            <h2 className="text-base sm:text-lg font-semibold text-foreground">
               {department} ({deptEmployees.length})
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {deptEmployees.map((employee, index) => (
                 <motion.div
                   key={employee.id}
@@ -237,15 +241,15 @@ export default function EmployeeDirectory() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: index * 0.05 }}
                 >
-                  <Card variant="glass" className="hover:bg-white/5 transition-colors">
-                    <CardContent className="p-4 sm:p-6">
-                      <div className="flex items-start justify-between mb-3 sm:mb-4">
-                        <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
+                  <Card variant="glass" className="hover:bg-white/5 transition-colors h-full">
+                    <CardContent className="p-5">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
                           {employee.profile_photo ? (
                             <img
                               src={employee.profile_photo}
                               alt={`${employee.first_name} ${employee.last_name}`}
-                              className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-blue-500/30 shadow-lg flex-shrink-0"
+                              className="w-14 h-14 rounded-full object-cover border-2 border-blue-500/30 shadow-lg flex-shrink-0"
                               onError={(e) => {
                                 // Fallback to initials if image fails to load
                                 const target = e.target as HTMLImageElement
@@ -256,7 +260,7 @@ export default function EmployeeDirectory() {
                             />
                           ) : null}
                           <div 
-                            className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-base sm:text-xl flex-shrink-0 ${
+                            className={`w-14 h-14 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-white font-bold text-base flex-shrink-0 ${
                               employee.profile_photo ? 'hidden' : ''
                             }`}
                           >
@@ -264,12 +268,12 @@ export default function EmployeeDirectory() {
                           </div>
                           <div className="min-w-0 flex-1">
                             <h3 
-                              className="font-semibold text-base sm:text-lg cursor-pointer hover:text-blue-400 transition-colors truncate"
+                              className="font-semibold text-base cursor-pointer hover:text-black dark:hover:text-white transition-colors truncate"
                               onClick={() => navigate(`/dashboard/employee/${employee.id}`)}
                             >
                               {employee.first_name} {employee.last_name}
                             </h3>
-                            <p className="text-xs sm:text-sm text-muted-foreground truncate">{employee.employee_id}</p>
+                            <p className="text-sm text-muted-foreground truncate">{employee.employee_id}</p>
                           </div>
                         </div>
                         <DropdownMenu
@@ -317,12 +321,12 @@ export default function EmployeeDirectory() {
                         {employee.hire_date && (
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Calendar size={14} />
-                            <span>{new Date(employee.hire_date).toLocaleDateString()}</span>
+                            <span>Joined {new Date(employee.hire_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                           </div>
                         )}
                         {employee.salary && (
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <span>₹{Number(employee.salary).toLocaleString('en-IN')}</span>
+                            <span>Monthly Salary ₹{Number(employee.salary).toLocaleString('en-IN')}</span>
                           </div>
                         )}
                         {employee.address && (
@@ -333,12 +337,12 @@ export default function EmployeeDirectory() {
                         )}
                       </div>
 
-                      <div className="flex gap-2">
-                        <Badge className={getStatusColor(employee.status)}>
-                          {employee.status?.replace('_', ' ').toUpperCase()}
+                      <div className="flex gap-2 flex-wrap">
+                        <Badge className={`${getStatusColor(employee.status)} text-sm`}>
+                          {employee.status?.replace('_', ' ') || 'active'}
                         </Badge>
                         {employee.department && (
-                          <Badge variant="secondary">{employee.department}</Badge>
+                          <Badge variant="secondary" className="text-sm">{employee.department}</Badge>
                         )}
                       </div>
                     </CardContent>
@@ -358,5 +362,6 @@ export default function EmployeeDirectory() {
         employee={editingEmployee || undefined}
       />
     </div>
+    </>
   )
 }
