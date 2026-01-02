@@ -843,7 +843,7 @@ export default function DashboardHome() {
               variant="glass" 
               className={`h-full flex flex-col transition-all duration-300 ${
                 stat.clickable 
-                  ? 'cursor-pointer' 
+                  ? 'cursor-pointer hover:shadow-lg hover:scale-105' 
                   : ''
               }`}
               onClick={() => stat.clickable && handleStatClick(stat.status)}
