@@ -302,7 +302,7 @@ export default function PaymentReceipt({ payroll, employeeName, onDownload }: Pa
             <FileText className="text-blue-500" size={24} />
             <h2 className="text-2xl font-bold">Payslip</h2>
           </div>
-          <Button onClick={generatePDF} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700">
+          <Button onClick={generatePDF} className="flex items-center gap-2 bg-blue-600">
             <Download size={18} />
             Download Payslip
           </Button>

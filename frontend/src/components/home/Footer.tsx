@@ -54,7 +54,7 @@ export default function Footer() {
                 <li key={link.label}>
                   <a
                     href={link.href}
-                    className="text-sm text-gray-600 hover:text-blue-600 transition-colors"
+                    className="text-sm text-gray-600 transition-colors"
                   >
                     {link.label}
                   </a>
@@ -71,7 +71,7 @@ export default function Footer() {
                 <li key={link.label}>
                   <a
                     href={link.href}
-                    className="text-sm text-gray-600 hover:text-blue-600 transition-colors"
+                    className="text-sm text-gray-600 transition-colors"
                   >
                     {link.label}
                   </a>
@@ -88,7 +88,7 @@ export default function Footer() {
                 <li key={link.label}>
                   <a
                     href={link.href}
-                    className="text-sm text-gray-600 hover:text-blue-600 transition-colors"
+                    className="text-sm text-gray-600 transition-colors"
                   >
                     {link.label}
                   </a>
@@ -108,7 +108,7 @@ export default function Footer() {
               <a
                 key={social.label}
                 href={social.href}
-                className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:text-blue-600 hover:border-blue-600 transition-colors"
+                className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-600 transition-colors"
                 aria-label={social.label}
               >
                 <social.icon size={18} />

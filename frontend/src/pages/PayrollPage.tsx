@@ -296,7 +296,7 @@ export default function PayrollPage() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 rounded-lg glass hover:bg-white/5 transition-colors overflow-x-hidden max-w-full"
+                  className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 rounded-lg glass transition-colors overflow-x-hidden max-w-full"
                 >
                   {/* Paid/Unpaid Filter in front */}
                   <div className="flex-shrink-0">
@@ -321,8 +321,8 @@ export default function PayrollPage() {
                         }}
                         className={`px-3 py-2 rounded-lg border text-sm font-medium min-w-[100px] cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
                           isPaid(payroll)
-                            ? 'bg-green-500/20 text-green-400 border-green-500/30 hover:bg-green-500/30'
-                            : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/30'
+                            ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                            : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
                         }`}
                       >
                         <option value="paid">Paid</option>
@@ -418,7 +418,7 @@ export default function PayrollPage() {
                   console.log('Closing modal')
                   setSelectedEmployeeForReceipt(null)
                 }}
-                className="hover:bg-gray-100 dark:hover:bg-gray-800"
+                className=""
               >
                 <X size={18} />
               </Button>

@@ -54,7 +54,7 @@ export default function Hero() {
             <Link to="/login">
               <Button size="lg" className="group">
                 Get Started
-                <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={20} />
+                <ArrowRight className="ml-2 transition-transform" size={20} />
               </Button>
             </Link>
             <Link to="/register">

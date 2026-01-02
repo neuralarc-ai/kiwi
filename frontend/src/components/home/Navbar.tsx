@@ -30,7 +30,7 @@ export default function HomeNavbar() {
               size="sm" 
               showSubtitle={false} 
               variant="navbar"
-              className="hover:scale-105 transition-transform duration-300"
+              className=""
             />
           </Link>
 
@@ -44,7 +44,7 @@ export default function HomeNavbar() {
                   "text-sm font-medium transition-colors",
                   location.pathname === item.path
                     ? "text-blue-600"
-                    : "text-gray-700 hover:text-blue-600"
+                    : "text-gray-700"
                 )}
               >
                 {item.label}
@@ -58,7 +58,7 @@ export default function HomeNavbar() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="md:hidden p-2 rounded-lg text-gray-700 hover:bg-gray-100"
+            className="md:hidden p-2 rounded-lg text-gray-700"
           >
             {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -81,7 +81,7 @@ export default function HomeNavbar() {
                   "block text-sm font-medium transition-colors",
                   location.pathname === item.path
                     ? "text-blue-600"
-                    : "text-gray-700 hover:text-blue-600"
+                    : "text-gray-700"
                 )}
               >
                 {item.label}

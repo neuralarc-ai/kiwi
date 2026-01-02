@@ -1,36 +1,24 @@
 import { motion } from 'framer-motion'
-import { Users, Briefcase, CalendarCheck, Calendar, BarChart3 } from 'lucide-react'
+import { Users, Briefcase, CalendarCheck, Calendar, BarChart3, ChevronRight } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { apiService } from '@/services/api'
-import { Doughnut, Line } from 'react-chartjs-2'
+import { Doughnut } from 'react-chartjs-2'
 import {
   Chart as ChartJS,
   ArcElement,
   Tooltip,
   Legend,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Filler,
 } from 'chart.js'
 
 // Register Chart.js components
 ChartJS.register(
   ArcElement,
   Tooltip,
-  Legend,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Filler
+  Legend
 )
 
 interface DashboardStats {
@@ -56,6 +44,321 @@ interface UpcomingLeave {
   reason: string
 }
 
+interface UpcomingEvent {
+  id: number
+  title: string
+  subtitle: string
+  date: string
+  time: string
+  type: 'bill' | 'salary' | 'leave' | 'meeting' | 'other'
+}
+
+// 6-Month Attendance Timeline Component
+function SixMonthAttendanceTimeline({ 
+  monthlyData,
+  loading 
+}: { 
+  monthlyData: {
+    months: string[]
+    present: number[]
+    absent: number[]
+    late: number[]
+    onLeave: number[]
+  }
+  loading: boolean
+}) {
+  const statusTypes = [
+    { label: 'Present', key: 'present', color: 'bg-green-500' },
+    { label: 'Absent', key: 'absent', color: 'bg-red-500' },
+    { label: 'Late', key: 'late', color: 'bg-yellow-500' },
+    { label: 'On Leave', key: 'onLeave', color: 'bg-blue-500' }
+  ]
+
+  const getMaxValue = () => {
+    const allValues = [
+      ...monthlyData.present,
+      ...monthlyData.absent,
+      ...monthlyData.late,
+      ...monthlyData.onLeave
+    ]
+    return Math.max(...allValues, 1)
+  }
+
+  const maxValue = getMaxValue()
+
+  const getStatusDotColor = (monthIndex: number) => {
+    const present = monthlyData.present[monthIndex] || 0
+    const absent = monthlyData.absent[monthIndex] || 0
+    const late = monthlyData.late[monthIndex] || 0
+    const onLeave = monthlyData.onLeave[monthIndex] || 0
+    
+    if (present > 0) return 'bg-green-500'
+    if (absent > 0) return 'bg-red-500'
+    if (late > 0) return 'bg-yellow-500'
+    if (onLeave > 0) return 'bg-blue-500'
+    return 'bg-gray-400'
+  }
+
+  if (loading) {
+    return (
+      <div className="h-[300px] flex items-center justify-center">
+        <Skeleton className="h-full w-full rounded-md" />
+      </div>
+    )
+  }
+
+  if (monthlyData.months.length === 0) {
+    return (
+      <div className="h-[300px] flex flex-col items-center justify-center text-muted-foreground space-y-2">
+        <BarChart3 className="w-12 h-12 opacity-50" />
+        <p className="text-base font-medium">No attendance trend data available</p>
+        <p className="text-sm">Attendance data will appear here once available</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="h-[300px] flex flex-col w-full">
+      {/* Timeline Grid */}
+      <div className="flex-1 w-full bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+        <div className="w-full h-full">
+          {/* Months Header */}
+          <div className="grid grid-cols-7 gap-0 border-b border-gray-200 dark:border-gray-700 h-10">
+            <div className="p-1 text-[10px] font-medium text-muted-foreground flex items-center justify-center">Status</div>
+            {monthlyData.months.map((month, index) => {
+              const dotColor = getStatusDotColor(index)
+              const isCurrentMonth = index === monthlyData.months.length - 1
+              
+              return (
+                <div
+                  key={index}
+                  className={`p-1 text-center border-l border-gray-200 dark:border-gray-700 flex items-center justify-center ${
+                    isCurrentMonth
+                      ? 'bg-orange-100 dark:bg-orange-900/20'
+                      : ''
+                  }`}
+                >
+                  {isCurrentMonth ? (
+                    <div className="w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center text-white font-semibold text-[9px]">
+                      {month.substring(0, 2)}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center gap-0.5">
+                      <span className="text-[10px] font-medium">{month.substring(0, 3)}</span>
+                      {dotColor && (
+                        <span className={`w-1 h-1 rounded-full ${dotColor}`} />
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Status Rows */}
+          <div className="space-y-0 h-[calc(100%-2.5rem)]">
+            {statusTypes.map((status, statusIndex) => (
+              <div key={statusIndex} className="grid grid-cols-7 gap-0 border-b border-gray-200 dark:border-gray-700 last:border-b-0 h-1/4">
+                {/* Status Label */}
+                <div className="p-1 text-[10px] text-muted-foreground border-r border-gray-200 dark:border-gray-700 font-medium flex items-center justify-center">
+                  {status.label}
+                </div>
+
+                {/* Month Cells */}
+                {monthlyData.months.map((month, monthIndex) => {
+                  const count = monthlyData[status.key as keyof typeof monthlyData][monthIndex] as number || 0
+                  const hasData = count > 0
+                  const heightPercentage = maxValue > 0 ? (count / maxValue) * 100 : 0
+                  const isCurrentMonth = monthIndex === monthlyData.months.length - 1
+
+                  return (
+                    <div
+                      key={monthIndex}
+                      className={`border-r border-gray-200 dark:border-gray-700 p-0.5 flex items-end ${
+                        isCurrentMonth ? 'bg-orange-50 dark:bg-orange-900/10' : ''
+                      }`}
+                    >
+                      {hasData && (
+                        <div
+                          className={`${status.color} text-white text-[9px] px-0.5 py-0.5 rounded w-full flex items-center justify-center font-medium shadow-sm`}
+                          style={{ height: `${Math.max(heightPercentage, 12)}%`, minHeight: '18px' }}
+                          title={`${status.label}: ${count}`}
+                        >
+                          {count}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div className="flex flex-wrap gap-1.5 pt-1">
+        <div className="flex items-center gap-0.5">
+          <div className="w-1 h-1 rounded-full bg-green-500"></div>
+          <span className="text-[9px] text-muted-foreground">Small note</span>
+        </div>
+        <div className="flex items-center gap-0.5">
+          <div className="w-1 h-1 rounded-full bg-purple-500"></div>
+          <span className="text-[9px] text-muted-foreground">Small note</span>
+        </div>
+        <div className="flex items-center gap-0.5">
+          <div className="w-1 h-1 rounded-full bg-gray-400"></div>
+          <span className="text-[9px] text-muted-foreground">Small note</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Upcoming Events Component
+function UpcomingEvents({ events, loading }: { events: UpcomingEvent[], loading: boolean }) {
+  const handleEventClick = (event: UpcomingEvent) => {
+    // Handle event click - you can navigate or show details
+    console.log('Event clicked:', event)
+    // Add your navigation or modal logic here
+    // Example: navigate(`/events/${event.id}`) or open a modal
+  }
+
+  const getDateInfo = (dateString: string) => {
+    const date = new Date(dateString)
+    const dayAbbr = date.toLocaleDateString('en-US', { weekday: 'short' })
+    const dayNumber = date.getDate()
+    return { dayAbbr, dayNumber }
+  }
+
+  const getColorScheme = (index: number, type: string) => {
+    // Color palette from design
+    const colors = {
+      redPassion: '#E0693D',      // First item background
+      quantumCore: '#262626',     // Dark gray
+      solarPulse: '#E7B31B',      // Golden yellow
+      coreReactor: '#E0693D',      // Same as Red Passion
+      auroraNode: '#EFB25E',      // Light orange/amber
+      dataflowBlue: '#A6C8D5',    // Light blue
+      neuralDrift: '#A69CBE',     // Lavender/purple
+      ionSpark: '#EFB3AF',        // Light pink
+      verdantCode: '#27584F',     // Dark teal/green
+      ionMist: '#EFB3AF'          // Same as Ion Spark
+    }
+
+    if (index === 0) {
+      // First item - Red Passion background
+      return {
+        container: colors.redPassion,
+        dateBg: colors.redPassion,
+        text: '#FFFFFF',
+        badge: colors.ionSpark,
+        textColor: '#FFFFFF'
+      }
+    }
+    
+    // Other items - colored date blocks
+    const dateColors = [
+      { dateBg: colors.auroraNode, text: colors.quantumCore },      // Aurora Node
+      { dateBg: colors.dataflowBlue, text: colors.quantumCore },    // Dataflow Blue
+      { dateBg: colors.neuralDrift, text: colors.quantumCore },    // Neural Drift
+      { dateBg: colors.ionSpark, text: colors.quantumCore }         // Ion Spark
+    ]
+    
+    const color = dateColors[(index - 1) % dateColors.length]
+    return {
+      container: '#FFFFFF',
+      dateBg: color.dateBg,
+      text: color.text,
+      badge: colors.coreReactor,
+      textColor: colors.quantumCore
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-20 w-full rounded-xl" />
+        <Skeleton className="h-20 w-full rounded-xl" />
+        <Skeleton className="h-20 w-full rounded-xl" />
+      </div>
+    )
+  }
+
+  if (events.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+        <Calendar className="w-12 h-12 opacity-50 mb-2" />
+        <p className="text-sm">No upcoming events</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      {events.map((event, index) => {
+        const { dayAbbr, dayNumber } = getDateInfo(event.date)
+        const colors = getColorScheme(index, event.type)
+        const isFirst = index === 0
+
+        return (
+          <div
+            key={event.id}
+            onClick={() => handleEventClick(event)}
+            style={{ 
+              backgroundColor: colors.container,
+              boxShadow: isFirst ? '0 4px 6px -1px rgba(0, 0, 0, 0.1)' : 'none',
+              cursor: 'pointer'
+            }}
+            className={`group flex items-center rounded-xl p-3 transition-all duration-200 ${
+              isFirst 
+                ? 'shadow-lg' 
+                : 'border border-gray-200 dark:border-gray-700'
+            } hover:opacity-90 active:scale-[0.98]`}
+          >
+            {/* Date Section */}
+            <div 
+              style={{ backgroundColor: colors.dateBg }}
+              className={`rounded-lg p-3 min-w-[60px] flex flex-col items-center justify-center mr-3 ${
+                isFirst ? '' : 'border border-gray-200 dark:border-gray-600'
+              }`}
+            >
+              <span style={{ color: colors.text }} className="text-xs font-medium">{dayAbbr}</span>
+              <span style={{ color: colors.text }} className="text-2xl font-bold">{dayNumber}</span>
+            </div>
+
+            {/* Event Details */}
+            <div className="flex-1 flex items-center justify-between">
+              <div className="flex-1">
+                <h3 style={{ color: colors.textColor || colors.text }} className="font-bold text-base mb-0.5">
+                  {event.title}
+                </h3>
+                <p style={{ color: isFirst ? 'rgba(255, 255, 255, 0.8)' : '#6B7280' }} className="text-sm">
+                  {event.subtitle}
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <span 
+                  style={{ backgroundColor: colors.badge }}
+                  className="text-white text-xs px-2 py-1 rounded-full font-medium"
+                >
+                  {event.time}
+                </span>
+                <ChevronRight 
+                  size={20} 
+                  style={{ color: colors.textColor || colors.text }}
+                  className="transition-transform duration-200 group-hover:translate-x-1"
+                />
+              </div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function DashboardHome() {
   const { token } = useAuth()
   const [loading, setLoading] = useState(true)
@@ -72,6 +375,8 @@ export default function DashboardHome() {
   })
   const [upcomingLeaves, setUpcomingLeaves] = useState<UpcomingLeave[]>([])
   const [loadingLeaves, setLoadingLeaves] = useState(true)
+  const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([])
+  const [loadingEvents, setLoadingEvents] = useState(true)
   const [forceUpdate, setForceUpdate] = useState(0) // Force component re-render
   const [monthlyAttendanceTrend, setMonthlyAttendanceTrend] = useState<{
     months: string[]
@@ -99,6 +404,70 @@ export default function DashboardHome() {
       console.error('Error fetching upcoming leaves:', error)
     } finally {
       setLoadingLeaves(false)
+    }
+  }, [token])
+
+  const fetchUpcomingEvents = useCallback(async () => {
+    if (!token) return
+
+    try {
+      setLoadingEvents(true)
+      const leaves = await apiService.getUpcomingLeaves(token)
+      
+      // Generate upcoming events from leaves and add reminders
+      const events: UpcomingEvent[] = []
+      
+      // Add leaves as events
+      if (leaves && leaves.length > 0) {
+        leaves.slice(0, 3).forEach((leave) => {
+          events.push({
+            id: leave.id,
+            title: `${leave.first_name} ${leave.last_name}`,
+            subtitle: 'Leave Request',
+            date: leave.start_date,
+            time: '09:00',
+            type: 'leave'
+          })
+        })
+      }
+      
+      // Add salary payment reminder (first of next month)
+      const today = new Date()
+      const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1)
+      events.push({
+        id: 1000,
+        title: 'Salary Payment',
+        subtitle: 'Payment Reminder',
+        date: nextMonth.toISOString().split('T')[0],
+        time: '10:00',
+        type: 'salary'
+      })
+      
+      // Add bill payment reminder (15th of current/next month)
+      const billDate = new Date(today)
+      if (today.getDate() < 15) {
+        billDate.setDate(15)
+      } else {
+        billDate.setMonth(today.getMonth() + 1)
+        billDate.setDate(15)
+      }
+      events.push({
+        id: 1001,
+        title: 'Bill Payment',
+        subtitle: 'Payment Reminder',
+        date: billDate.toISOString().split('T')[0],
+        time: '11:30',
+        type: 'bill'
+      })
+      
+      // Sort by date
+      events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      
+      setUpcomingEvents(events.slice(0, 4))
+    } catch (error) {
+      console.error('Error fetching upcoming events:', error)
+    } finally {
+      setLoadingEvents(false)
     }
   }, [token])
 
@@ -241,6 +610,7 @@ export default function DashboardHome() {
         await Promise.all([
           refreshDashboardData(),
           fetchUpcomingLeaves(),
+          fetchUpcomingEvents(),
           fetchMonthlyAttendanceTrend()
         ])
       } catch (error) {
@@ -255,10 +625,11 @@ export default function DashboardHome() {
       console.log('🔄 Global refresh function called')
       await Promise.all([
         refreshDashboardData(),
-        fetchUpcomingLeaves()
+        fetchUpcomingLeaves(),
+        fetchUpcomingEvents()
       ])
     }
-  }, [token, fetchUpcomingLeaves, refreshDashboardData, fetchMonthlyAttendanceTrend])
+  }, [token, fetchUpcomingLeaves, fetchUpcomingEvents, refreshDashboardData, fetchMonthlyAttendanceTrend])
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -438,161 +809,6 @@ export default function DashboardHome() {
     },
   }
 
-  // Monthly Attendance Trend Line Chart Data - Chart.js format (same as example)
-  const lineChartData = useMemo(() => {
-    // Use the months from the fetched data - they are already in chronological order
-    let labels: string[] = []
-    
-    if (monthlyAttendanceTrend.months.length > 0) {
-      // Use the actual months from the fetched data (already in chronological order)
-      labels = [...monthlyAttendanceTrend.months]
-    } else {
-      // Generate month labels for last 6 months (fallback) in chronological order
-      for (let i = 5; i >= 0; i--) {
-        const currentDate = new Date()
-        const targetDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1)
-        const currentYear = new Date().getFullYear()
-        const monthLabel = targetDate.getFullYear() !== currentYear
-          ? targetDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-          : targetDate.toLocaleDateString('en-US', { month: 'short' })
-        labels.push(monthLabel)
-      }
-    }
-    
-    // Ensure data arrays match labels length and are in correct order
-    const dataLength = labels.length || 6
-    const presentData = monthlyAttendanceTrend.present.length === dataLength
-      ? [...monthlyAttendanceTrend.present]
-      : monthlyAttendanceTrend.present.length > 0 
-        ? [...monthlyAttendanceTrend.present]
-        : new Array(dataLength).fill(0)
-    const absentData = monthlyAttendanceTrend.absent.length === dataLength
-      ? [...monthlyAttendanceTrend.absent]
-      : monthlyAttendanceTrend.absent.length > 0 
-        ? [...monthlyAttendanceTrend.absent]
-        : new Array(dataLength).fill(0)
-    const lateData = monthlyAttendanceTrend.late.length === dataLength
-      ? [...monthlyAttendanceTrend.late]
-      : monthlyAttendanceTrend.late.length > 0 
-        ? [...monthlyAttendanceTrend.late]
-        : new Array(dataLength).fill(0)
-    const onLeaveData = monthlyAttendanceTrend.onLeave.length === dataLength
-      ? [...monthlyAttendanceTrend.onLeave]
-      : monthlyAttendanceTrend.onLeave.length > 0 
-        ? [...monthlyAttendanceTrend.onLeave]
-        : new Array(dataLength).fill(0)
-    
-    // Chart.js format - Zigzag format with sharp angles
-    const data = {
-      labels: labels,
-      datasets: [
-        {
-          label: 'Present',
-          data: presentData,
-          fill: false,
-          borderColor: 'rgb(34, 197, 94)',
-          tension: 0, // Zero tension for sharp zigzag lines
-        },
-        {
-          label: 'Absent',
-          data: absentData,
-          fill: false,
-          borderColor: 'rgb(239, 68, 68)',
-          tension: 0, // Zero tension for sharp zigzag lines
-        },
-        {
-          label: 'Late',
-          data: lateData,
-          fill: false,
-          borderColor: 'rgb(234, 179, 8)',
-          tension: 0, // Zero tension for sharp zigzag lines
-        },
-        {
-          label: 'On Leave',
-          data: onLeaveData,
-          fill: false,
-          borderColor: 'rgb(59, 130, 246)',
-          tension: 0, // Zero tension for sharp zigzag lines
-        },
-      ],
-    }
-    
-    return data
-  }, [monthlyAttendanceTrend])
-
-  const lineChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'bottom' as const,
-        labels: {
-          padding: 15,
-          usePointStyle: true,
-          font: {
-            size: 14,
-          },
-        },
-      },
-      tooltip: {
-        mode: 'index' as const,
-        intersect: false,
-        titleFont: {
-          size: 14,
-        },
-        bodyFont: {
-          size: 13,
-        },
-        callbacks: {
-          label: function(context: any) {
-            const label = context.dataset.label || ''
-            const value = context.parsed.y || 0
-            return `${label}: ${value} employee${value !== 1 ? 's' : ''}`
-          },
-        },
-      },
-    },
-    scales: {
-      x: {
-        grid: {
-          display: false,
-        },
-        ticks: {
-          font: {
-            size: 12,
-          },
-          maxRotation: 45,
-          minRotation: 45,
-          autoSkip: false, // Show all labels
-        },
-        title: {
-          display: true,
-          text: 'Month',
-          font: {
-            size: 14,
-          },
-        },
-      },
-      y: {
-        beginAtZero: true,
-        ticks: {
-          stepSize: 1,
-          font: {
-            size: 13,
-          },
-        },
-        grid: {
-          color: 'rgba(0, 0, 0, 0.05)',
-        },
-      },
-    },
-    interaction: {
-      mode: 'nearest' as const,
-      axis: 'x' as const,
-      intersect: false,
-    },
-  }
-
   return (
     <div className="space-y-6 overflow-x-hidden max-w-full">
       <motion.div
@@ -627,8 +843,8 @@ export default function DashboardHome() {
               variant="glass" 
               className={`h-full flex flex-col transition-all duration-300 ${
                 stat.clickable 
-                  ? 'cursor-pointer hover:scale-105 hover:shadow-lg' 
-                  : 'hover:scale-105'
+                  ? 'cursor-pointer' 
+                  : ''
               }`}
               onClick={() => stat.clickable && handleStatClick(stat.status)}
             >
@@ -663,7 +879,7 @@ export default function DashboardHome() {
         ))}
       </div>
 
-      {/* Charts Grid - Doughnut Chart and Line Chart Side by Side */}
+      {/* Charts Grid - Doughnut Chart and 6-Month Timeline */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         {/* Today's Attendance Doughnut Chart */}
  <motion.div
@@ -698,7 +914,7 @@ export default function DashboardHome() {
         </Card>
       </motion.div>
 
-        {/* Monthly Attendance Trend Line Chart */}
+        {/* Monthly Attendance Trend Timeline */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -711,83 +927,31 @@ export default function DashboardHome() {
                 Monthly Attendance Trend (Last 6 Months)
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 pb-0">
-              {loadingTrend ? (
-                <div className="h-[300px] flex items-center justify-center">
-                  <Skeleton className="h-full w-full rounded-md" />
-                </div>
-              ) : monthlyAttendanceTrend.months.length === 0 ? (
-                <div className="h-[300px] flex flex-col items-center justify-center text-muted-foreground space-y-2">
-                  <BarChart3 className="w-12 h-12 opacity-50" />
-                  <p className="text-base font-medium">No attendance trend data available</p>
-                  <p className="text-sm">Attendance data will appear here once available</p>
-                </div>
-              ) : (
-                <div className="h-[300px] w-full">
-                  <Line data={lineChartData} options={lineChartOptions} />
-                </div>
-              )}
+            <CardContent className="flex-1 pb-0 overflow-hidden">
+              <SixMonthAttendanceTimeline monthlyData={monthlyAttendanceTrend} loading={loadingTrend} />
             </CardContent>
           </Card>
         </motion.div>
       </div>
 
-      {/* Upcoming Leaves Section */}
-      {upcomingLeaves.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          <Card variant="glass">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                <Calendar size={20} />
-                Upcoming Leaves
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loadingLeaves ? (
-                <div className="space-y-3">
-                  <Skeleton className="h-16 w-full" />
-                  <Skeleton className="h-16 w-full" />
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {upcomingLeaves.slice(0, 5).map((leave) => (
-                    <div
-                      key={leave.id}
-                      className="flex items-center justify-between p-3 rounded-lg glass hover:bg-white/5 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-white font-bold text-sm">
-                          {leave.first_name?.[0]}{leave.last_name?.[0]}
-                        </div>
-                        <div>
-                          <p className="text-base font-semibold">
-                            {leave.first_name} {leave.last_name}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {leave.leave_type} • {formatDate(leave.start_date)} - {formatDate(leave.end_date)}
-                          </p>
-                        </div>
-                      </div>
-                      <Badge variant="secondary" className="capitalize text-sm">
-                        {leave.leave_type}
-                      </Badge>
-                    </div>
-                  ))}
-                  {upcomingLeaves.length > 5 && (
-                    <p className="text-base text-muted-foreground text-center pt-2">
-                      +{upcomingLeaves.length - 5} more upcoming leaves
-                    </p>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
+      {/* Upcoming Events Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+      >
+        <Card variant="glass">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base font-semibold">
+              <Calendar size={20} />
+              Upcoming Events
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <UpcomingEvents events={upcomingEvents} loading={loadingEvents} />
+          </CardContent>
+        </Card>
+      </motion.div>
 
      
     </div>

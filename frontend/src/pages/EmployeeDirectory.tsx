@@ -190,7 +190,7 @@ export default function EmployeeDirectory() {
             <Badge
               key={dept}
               variant={selectedDepartment === dept ? 'default' : 'secondary'}
-              className="cursor-pointer hover:scale-105 transition-transform"
+              className="cursor-pointer transition-transform"
               onClick={() => setSelectedDepartment(dept)}
             >
               {dept} {dept !== 'All' && `(${employees.filter(e => e.department === dept).length})`}
@@ -241,7 +241,7 @@ export default function EmployeeDirectory() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: index * 0.05 }}
                 >
-                  <Card variant="glass" className="hover:bg-white/5 transition-colors h-full">
+                  <Card variant="glass" className="transition-colors h-full">
                     <CardContent className="p-5">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -268,7 +268,7 @@ export default function EmployeeDirectory() {
                           </div>
                           <div className="min-w-0 flex-1">
                             <h3 
-                              className="font-semibold text-base cursor-pointer hover:text-black dark:hover:text-white transition-colors truncate"
+                              className="font-semibold text-base cursor-pointer transition-colors truncate"
                               onClick={() => navigate(`/dashboard/employee/${employee.id}`)}
                             >
                               {employee.first_name} {employee.last_name}
@@ -278,7 +278,7 @@ export default function EmployeeDirectory() {
                         </div>
                         <DropdownMenu
                           trigger={
-                            <button className="p-2 rounded-lg hover:bg-white/10 transition-colors">
+                            <button className="p-2 rounded-lg transition-colors">
                               <MoreVertical size={18} />
                             </button>
                           }

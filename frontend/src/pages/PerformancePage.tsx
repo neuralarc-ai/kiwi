@@ -313,7 +313,7 @@ export default function PerformancePage() {
                   {performances.map((performance) => (
                     <tr 
                       key={`${performance.employee_id}-${performance.month}-${performance.year}`} 
-                      className="border-b hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                      className="border-b"
                     >
                       <td className="p-3 font-medium">
                         {performance.first_name || ''} {performance.last_name || ''}
@@ -356,7 +356,7 @@ export default function PerformancePage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDelete(performance.id!)}
-                            className="text-red-600 hover:text-red-700"
+                            className="text-red-600"
                           >
                             <Trash2 size={16} />
                           </Button>

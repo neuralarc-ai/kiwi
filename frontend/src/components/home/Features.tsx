@@ -57,7 +57,7 @@ export default function Features() {
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
             >
-              <Card variant="glass" className="h-full hover:scale-105 transition-transform duration-300">
+              <Card variant="glass" className="h-full transition-transform duration-300">
                 <CardContent className="p-4 sm:p-6">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-blue-100 flex items-center justify-center mb-3 sm:mb-4">
                     <feature.icon className="text-blue-600 w-5 h-5 sm:w-6 sm:h-6" />

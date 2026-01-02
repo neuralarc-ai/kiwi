@@ -75,7 +75,7 @@ export default function Sidebar() {
           )}
           <button
             onClick={toggleSidebar}
-            className="p-2 rounded-lg hover:bg-white/10 active:bg-white/20 transition-colors flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="p-2 rounded-lg active:bg-white/20 transition-colors flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label={isMobileOpen ? "Close menu" : "Open menu"}
           >
             {isMobile ? (isMobileOpen ? <X size={20} /> : <Menu size={20} />) : (isCollapsed ? <Menu size={20} /> : <X size={20} />)}
@@ -99,23 +99,9 @@ export default function Sidebar() {
                   "flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg transition-all duration-300 group relative overflow-visible min-h-[44px] w-full",
                   isActive
                     ? "text-black border"
-                    : "text-muted-foreground hover:text-foreground"
+                    : "text-muted-foreground"
                 )
               }
-              onMouseEnter={(e) => {
-                const navLink = e.currentTarget
-                const isActive = navLink.getAttribute('aria-current') === 'page'
-                if (!isActive) {
-                  navLink.style.backgroundColor = 'oklch(94% .01 60)'
-                }
-              }}
-              onMouseLeave={(e) => {
-                const navLink = e.currentTarget
-                const isActive = navLink.getAttribute('aria-current') === 'page'
-                if (!isActive) {
-                  navLink.style.backgroundColor = ''
-                }
-              }}
             >
               {({ isActive }) => (
                 <>
@@ -127,7 +113,7 @@ export default function Sidebar() {
                   >
                     <item.icon 
                       size={isMobile ? 18 : 20} 
-                      className="transition-transform group-hover:scale-110"
+                      className=""
                       style={isActive ? { color: 'black' } : undefined}
                     />
                   </motion.div>
@@ -142,7 +128,7 @@ export default function Sidebar() {
                   )}
                   {isCollapsed && !isMobile && (
                     <motion.span
-                      className="hidden group-hover:block absolute left-full ml-2 px-2 py-1 rounded bg-white dark:bg-gray-800 shadow-lg whitespace-nowrap z-50 text-sm font-medium"
+                      className="hidden absolute left-full ml-2 px-2 py-1 rounded bg-white dark:bg-gray-800 shadow-lg whitespace-nowrap z-50 text-sm font-medium"
                     >
                       {item.label}
                     </motion.span>

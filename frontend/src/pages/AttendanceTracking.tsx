@@ -560,7 +560,7 @@ export default function AttendanceTracking() {
           {!showUpcomingLeaves ? (
             <Card 
               variant="glass" 
-              className="cursor-pointer hover:bg-white/5 transition-colors"
+              className="cursor-pointer transition-colors"
               onClick={() => {
                 setShowUpcomingLeaves(true)
                 if (upcomingLeaves.length === 0) {
@@ -645,7 +645,7 @@ export default function AttendanceTracking() {
                         return (
                           <div
                             key={leave.id}
-                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg glass hover:bg-white/5 transition-colors"
+                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg glass transition-colors"
                           >
                             <div className="flex items-center gap-3 flex-1">
                               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
@@ -702,7 +702,7 @@ export default function AttendanceTracking() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
           >
-            <Card variant="glass" className="hover:scale-105 transition-transform">
+            <Card variant="glass" className="transition-transform">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div>
@@ -805,7 +805,7 @@ export default function AttendanceTracking() {
                                       ? 'bg-gradient-to-b from-blue-500/40 to-blue-600/30 border-blue-400/50 shadow-lg shadow-blue-500/20' 
                                       : isWeekend 
                                       ? 'bg-gray-100/50 dark:bg-gray-800/30' 
-                                      : 'bg-white/50 dark:bg-gray-800/20 hover:bg-gray-100/70 dark:hover:bg-gray-800/30'
+                                      : 'bg-white/50 dark:bg-gray-800/20'
                                   } ${isFuture ? 'opacity-40' : ''}`}
                                 >
                                   <div className={`text-xs font-bold ${isToday ? 'text-blue-700 dark:text-blue-200' : 'text-gray-900 dark:text-white/90'}`}>
@@ -845,16 +845,16 @@ export default function AttendanceTracking() {
                                     empIndex % 2 === 0 
                                       ? 'bg-gradient-to-r from-white/60 via-white/40 to-white/60 dark:from-gray-900/40 dark:via-gray-900/30 dark:to-gray-900/40' 
                                       : 'bg-gradient-to-r from-white/40 via-white/20 to-white/40 dark:from-gray-900/20 dark:via-gray-900/10 dark:to-gray-900/20'
-                                  } hover:from-white/80 hover:via-white/60 hover:to-white/80 dark:hover:from-gray-800/50 dark:hover:via-gray-800/40 dark:hover:to-gray-800/50`}
+                                  }`}
                                 >
-                                  <td className="sticky left-0 z-10 bg-gradient-to-r from-white/95 via-white/90 to-white/95 dark:from-gray-900/95 dark:via-gray-900/90 dark:to-gray-900/95 backdrop-blur-md border-r-2 border-gray-200 dark:border-white/10 border-b border-gray-200/50 dark:border-white/5 p-2 sm:p-4 shadow-xl group-hover:from-white/98 group-hover:via-white/95 group-hover:to-white/98 dark:group-hover:from-gray-800/95 dark:group-hover:via-gray-800/90 dark:group-hover:to-gray-800/95 min-w-[120px] sm:min-w-[150px] md:min-w-[200px]">
+                                  <td className="sticky left-0 z-10 bg-gradient-to-r from-white/95 via-white/90 to-white/95 dark:from-gray-900/95 dark:via-gray-900/90 dark:to-gray-900/95 backdrop-blur-md border-r-2 border-gray-200 dark:border-white/10 border-b border-gray-200/50 dark:border-white/5 p-2 sm:p-4 shadow-xl min-w-[120px] sm:min-w-[150px] md:min-w-[200px]">
                                     <div className="flex items-center gap-2 sm:gap-3">
                                       <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 flex items-center justify-center text-white font-bold text-xs sm:text-sm flex-shrink-0 shadow-lg shadow-gray-400/30 ring-2 ring-gray-400/20">
                                         {employee.first_name?.[0]}{employee.last_name?.[0]}
                                       </div>
                                       <div className="min-w-0 flex-1">
                                         <div 
-                                          className="font-bold text-base truncate text-gray-900 dark:text-white mb-0.5 cursor-pointer hover:text-black dark:hover:text-white transition-colors"
+                                          className="font-bold text-base truncate text-gray-900 dark:text-white mb-0.5 cursor-pointer transition-colors"
                                           onClick={() => navigate(`/dashboard/employee/${employee.id}`)}
                                         >
                                           {employee.first_name} {employee.last_name}
@@ -886,7 +886,7 @@ export default function AttendanceTracking() {
                                           isFuture ? 'opacity-30 bg-gray-100/30 dark:bg-gray-900/20' : ''
                                         } ${isWeekendDay && !isFuture ? 'bg-gray-100/40 dark:bg-gray-800/15' : ''} ${
                                           isToday ? 'bg-blue-500/10 ring-1 ring-blue-500/30' : ''
-                                        } group-hover:bg-gray-100/50 dark:group-hover:bg-white/5`}
+                                        }`}
                                       >
                                         {isFuture ? (
                                           <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gray-200/50 dark:bg-gray-800/30">
@@ -895,7 +895,7 @@ export default function AttendanceTracking() {
                                         ) : status ? (
                                           <div className="flex items-center justify-center">
                                             <div
-                                              className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shadow-lg transition-all hover:scale-125 cursor-help ${
+                                              className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shadow-lg transition-all cursor-help ${
                                                 status === 'present'
                                                   ? 'bg-gradient-to-br from-green-500 to-emerald-600 text-white border-2 border-green-400/50 shadow-green-500/30'
                                                   : status === 'absent'
@@ -1000,25 +1000,25 @@ export default function AttendanceTracking() {
             <CardContent className="p-5">
               <div className="flex flex-wrap items-center justify-center gap-8 text-sm">
                 <div className="flex items-center gap-3 group cursor-pointer">
-                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 text-white border-2 border-green-400/50 shadow-lg shadow-green-500/30 flex items-center justify-center text-xs font-bold transition-transform group-hover:scale-110">
+                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 text-white border-2 border-green-400/50 shadow-lg shadow-green-500/30 flex items-center justify-center text-xs font-bold transition-transform">
                     P
                   </div>
                   <span className="font-semibold text-gray-900 dark:text-white">Present</span>
                 </div>
                 <div className="flex items-center gap-3 group cursor-pointer">
-                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-red-500 to-rose-600 text-white border-2 border-red-400/50 shadow-lg shadow-red-500/30 flex items-center justify-center text-xs font-bold transition-transform group-hover:scale-110">
+                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-red-500 to-rose-600 text-white border-2 border-red-400/50 shadow-lg shadow-red-500/30 flex items-center justify-center text-xs font-bold transition-transform">
                     A
                   </div>
                   <span className="font-semibold text-gray-900 dark:text-white">Absent</span>
                 </div>
                 <div className="flex items-center gap-3 group cursor-pointer">
-                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-yellow-500 to-amber-600 text-white border-2 border-yellow-400/50 shadow-lg shadow-yellow-500/30 flex items-center justify-center text-xs font-bold transition-transform group-hover:scale-110">
+                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-yellow-500 to-amber-600 text-white border-2 border-yellow-400/50 shadow-lg shadow-yellow-500/30 flex items-center justify-center text-xs font-bold transition-transform">
                     L
                   </div>
                   <span className="font-semibold text-gray-900 dark:text-white">Late</span>
                 </div>
                 <div className="flex items-center gap-3 group cursor-pointer">
-                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-gray-300 to-gray-400 text-white border-2 border-gray-300/50 shadow-lg shadow-gray-400/30 flex items-center justify-center text-xs font-bold transition-transform group-hover:scale-110">
+                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-gray-300 to-gray-400 text-white border-2 border-gray-300/50 shadow-lg shadow-gray-400/30 flex items-center justify-center text-xs font-bold transition-transform">
                     OL
                   </div>
                   <span className="font-semibold text-gray-900 dark:text-white">On Leave</span>
@@ -1073,7 +1073,7 @@ export default function AttendanceTracking() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4 p-4 rounded-lg glass hover:bg-white/5 transition-colors"
+                    className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4 p-4 rounded-lg glass transition-colors"
                   >
                     <div className="flex items-center gap-3 flex-1">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-white font-bold flex-shrink-0">
@@ -1082,7 +1082,7 @@ export default function AttendanceTracking() {
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <h3 
-                            className="font-semibold text-base truncate cursor-pointer hover:text-black dark:hover:text-white transition-colors"
+                            className="font-semibold text-base truncate cursor-pointer transition-colors"
                             onClick={() => navigate(`/dashboard/employee/${employee.id}`)}
                           >
                             {employee.first_name} {employee.last_name}

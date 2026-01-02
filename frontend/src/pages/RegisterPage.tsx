@@ -107,11 +107,11 @@ export default function RegisterPage() {
               <input type="checkbox" className="rounded mt-1 flex-shrink-0" />
               <span className="text-muted-foreground break-words">
                 I agree to the{' '}
-                <a href="#" className="text-black dark:text-white hover:opacity-80 transition-colors">
+                <a href="#" className="text-black dark:text-white transition-colors">
                   Terms of Service
                 </a>{' '}
                 and{' '}
-                <a href="#" className="text-black dark:text-white hover:opacity-80 transition-colors">
+                <a href="#" className="text-black dark:text-white transition-colors">
                   Privacy Policy
                 </a>
               </span>
@@ -130,7 +130,7 @@ export default function RegisterPage() {
             className="mt-6 text-center text-sm text-muted-foreground"
           >
             Already have an account?{' '}
-            <Link to="/login" className="text-black dark:text-white hover:opacity-80 transition-colors">
+            <Link to="/login" className="text-black dark:text-white transition-colors">
               Sign In
             </Link>
           </motion.div>

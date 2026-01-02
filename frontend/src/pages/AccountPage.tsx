@@ -639,7 +639,7 @@ export default function AccountPage() {
                   return (
                     <tr
                       key={entry.id}
-                      className="border-b border-border hover:bg-muted/50 transition-colors"
+                      className="border-b border-border transition-colors"
                     >
                       <td className="p-3 text-sm font-medium">{entry.head}</td>
                       <td className="p-3 text-sm text-muted-foreground">

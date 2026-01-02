@@ -367,7 +367,7 @@ export default function EmployeeProfile() {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.05 }}
-                          className="border-b border-gray-200/50 dark:border-gray-700/50 hover:bg-white/5 transition-colors"
+                          className="border-b border-gray-200/50 dark:border-gray-700/50 transition-colors"
                     >
                           <td className="p-3 text-sm sm:text-base">{monthName}</td>
                           <td className="p-3 text-sm sm:text-base">{payroll.year || 'N/A'}</td>

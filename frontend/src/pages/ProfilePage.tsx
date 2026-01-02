@@ -126,7 +126,7 @@ export default function ProfilePage() {
             <div className="flex flex-wrap gap-3">
               <a
                 href="/dashboard/settings"
-                className="px-3 sm:px-4 py-2 rounded-lg bg-blue-500/20 text-black dark:text-white border border-blue-500/30 hover:bg-blue-500/30 transition-colors text-sm sm:text-base w-full sm:w-auto text-center"
+                className="px-3 sm:px-4 py-2 rounded-lg bg-blue-500/20 text-black dark:text-white border border-blue-500/30 transition-colors text-sm sm:text-base w-full sm:w-auto text-center"
               >
                 Go to Settings
               </a>

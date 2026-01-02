@@ -32,7 +32,7 @@ export default function Navbar() {
           {isMobile && (
             <button
               onClick={openMobileSidebar}
-              className="p-1.5 sm:p-2 rounded-lg glass hover:bg-white/20 transition-colors flex-shrink-0"
+              className="p-1.5 sm:p-2 rounded-lg glass transition-colors flex-shrink-0"
               aria-label="Open menu"
             >
               <Menu size={18} className="sm:w-5 sm:h-5" />
@@ -40,10 +40,9 @@ export default function Navbar() {
           )}
           {!isMobile && (
             <motion.button
-              whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => navigate('/home')}
-              className="p-1.5 sm:p-2 rounded-lg glass hover:bg-white/20 transition-colors flex-shrink-0"
+              className="p-1.5 sm:p-2 rounded-lg glass transition-colors flex-shrink-0"
               title="Go to Home"
             >
               <Home size={18} className="sm:w-5 sm:h-5" style={{ color: 'oklch(62% .08 270)' }} />
@@ -58,20 +57,18 @@ export default function Navbar() {
           </div>
 
           <motion.div
-            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => navigate('/dashboard/profile')}
-            className="p-1.5 sm:p-2 rounded-full glass cursor-pointer relative group hover:bg-white/20 transition-colors flex-shrink-0"
+            className="p-1.5 sm:p-2 rounded-full glass cursor-pointer relative group transition-colors flex-shrink-0"
             title={user?.email || 'User'}
           >
             <User size={18} className="sm:w-5 sm:h-5" />
           </motion.div>
 
           <motion.button
-            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleLogout}
-            className="p-1.5 sm:p-2 rounded-lg glass hover:bg-white/20 transition-colors flex-shrink-0"
+            className="p-1.5 sm:p-2 rounded-lg glass transition-colors flex-shrink-0"
             title="Logout"
           >
             <LogOut size={18} className="sm:w-5 sm:h-5" />

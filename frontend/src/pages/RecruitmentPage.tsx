@@ -177,7 +177,7 @@ export default function RecruitmentPage() {
             <Badge
               key={dept}
               variant={selectedDepartment === dept ? 'default' : 'secondary'}
-              className="cursor-pointer hover:scale-105 transition-transform"
+              className="cursor-pointer transition-transform"
               onClick={() => setSelectedDepartment(dept)}
             >
               {dept} {dept !== 'All' && `(${jobPostings.filter(j => j.department === dept).length})`}
@@ -230,7 +230,7 @@ export default function RecruitmentPage() {
                       </Badge>
                       <DropdownMenu
                         trigger={
-                          <button className="p-2 rounded-lg hover:bg-white/10 transition-colors">
+                          <button className="p-2 rounded-lg transition-colors">
                             <MoreVertical size={18} />
                           </button>
                         }

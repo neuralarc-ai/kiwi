@@ -129,7 +129,7 @@ export default function LoginPage() {
                 <input type="checkbox" className="rounded" />
                 <span className="text-muted-foreground">Remember me</span>
               </label>
-              <a href="#" className="text-black dark:text-white hover:opacity-80 transition-colors">
+              <a href="#" className="text-black dark:text-white transition-colors">
                 Forgot password?
               </a>
             </div>
@@ -147,7 +147,7 @@ export default function LoginPage() {
             className="mt-6 text-center text-sm text-muted-foreground"
           >
             Don't have an account?{' '}
-            <Link to="/register" className="text-black dark:text-white hover:opacity-80 transition-colors">
+            <Link to="/register" className="text-black dark:text-white transition-colors">
               Sign Up
             </Link>
           </motion.div>

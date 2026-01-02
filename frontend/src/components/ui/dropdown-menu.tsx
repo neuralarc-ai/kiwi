@@ -77,7 +77,7 @@ export function DropdownMenuItem({
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2 ${className}`}
+      className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center gap-2 ${className}`}
       {...props}
     >
       {children}

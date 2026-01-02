@@ -127,10 +127,6 @@
     border-radius: 4px;
   }
 
-  .overflow-x-auto::-webkit-scrollbar-thumb:hover,
-  [style*="overflow-x"]::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.5);
-  }
 
   /* Force scrolling on mobile */
   @media (max-width: 768px) {
@@ -277,9 +273,6 @@
     filter: blur(20px);
   }
 
-  .glow-effect:hover::before {
-    @apply opacity-100;
-  }
 
   .animate-blob {
     animation: blob 7s infinite;

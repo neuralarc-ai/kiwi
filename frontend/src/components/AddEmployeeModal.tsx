@@ -207,7 +207,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, employee 
                   <button
                     type="button"
                     onClick={handleRemovePhoto}
-                    className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors"
+                    className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg transition-colors"
                   >
                     <X size={16} />
                   </button>
@@ -229,7 +229,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, employee 
               />
               <label
                 htmlFor="photo-upload"
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30"
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg cursor-pointer transition-colors shadow-lg shadow-blue-500/30"
               >
                 <Upload size={18} />
                 <span>{photoPreview ? 'Change Photo' : 'Upload Photo'}</span>

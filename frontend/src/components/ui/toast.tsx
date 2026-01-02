@@ -62,7 +62,7 @@ function ToastComponent({ toast, onClose }: ToastProps) {
           setIsVisible(false)
           setTimeout(() => onClose(toast.id), 300)
         }}
-        className="flex-shrink-0 opacity-70 hover:opacity-100 transition-opacity"
+        className="flex-shrink-0 opacity-70 transition-opacity"
       >
         <X className="h-4 w-4" />
       </button>
