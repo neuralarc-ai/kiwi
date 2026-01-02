@@ -32,11 +32,53 @@ export const getEmployee = async (req, res) => {
 
 // Helper function to generate employee ID
 const generateEmployeeId = async () => {
+  // Get all existing employee IDs that match the EMP pattern
   const result = await pool.query(
-    "SELECT COUNT(*) as count FROM employees WHERE employee_id LIKE 'EMP%'"
+    "SELECT employee_id FROM employees WHERE employee_id LIKE 'EMP%' ORDER BY employee_id DESC"
   );
-  const count = parseInt(result.rows[0].count) || 0;
-  return `EMP${String(count + 1).padStart(4, '0')}`;
+  
+  if (result.rows.length === 0) {
+    return 'EMP0001';
+  }
+  
+  // Extract the numeric part from all employee IDs and find the maximum
+  let maxNumber = 0;
+  for (const row of result.rows) {
+    const match = row.employee_id.match(/^EMP(\d+)$/);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num > maxNumber) {
+        maxNumber = num;
+      }
+    }
+  }
+  
+  // Find the next available ID by checking if it exists
+  let nextNumber = maxNumber + 1;
+  let attempts = 0;
+  const maxAttempts = 1000; // Safety limit
+  
+  while (attempts < maxAttempts) {
+    const candidateId = `EMP${String(nextNumber).padStart(4, '0')}`;
+    
+    // Check if this ID already exists
+    const checkResult = await pool.query(
+      'SELECT employee_id FROM employees WHERE employee_id = $1',
+      [candidateId]
+    );
+    
+    if (checkResult.rows.length === 0) {
+      // This ID is available
+      return candidateId;
+    }
+    
+    // ID exists, try next number
+    nextNumber++;
+    attempts++;
+  }
+  
+  // Fallback: if we somehow can't find an ID, use timestamp-based
+  return `EMP${Date.now().toString().slice(-4)}`;
 };
 
 export const createEmployee = async (req, res) => {
@@ -61,20 +103,36 @@ export const createEmployee = async (req, res) => {
       return res.status(400).json({ message: 'First name, last name, and email are required' });
     }
 
-    // Generate employee_id if not provided
+    // Generate employee_id if not provided, or if provided one already exists
     let finalEmployeeId = employee_id;
+    
     if (!finalEmployeeId) {
+      // No ID provided, generate one
       finalEmployeeId = await generateEmployeeId();
+    } else {
+      // ID provided, check if it exists
+      const existingId = await pool.query(
+        'SELECT * FROM employees WHERE employee_id = $1',
+        [finalEmployeeId]
+      );
+
+      if (existingId.rows.length > 0) {
+        // Provided ID exists, auto-generate a new one instead of erroring
+        console.log(`⚠️ Employee ID "${finalEmployeeId}" already exists. Auto-generating new ID.`);
+        finalEmployeeId = await generateEmployeeId();
+      }
     }
 
-    // Check if employee_id or email already exists
-    const existing = await pool.query(
-      'SELECT * FROM employees WHERE employee_id = $1 OR email = $2',
-      [finalEmployeeId, email]
+    // Check if email already exists
+    const existingEmail = await pool.query(
+      'SELECT * FROM employees WHERE email = $1',
+      [email]
     );
 
-    if (existing.rows.length > 0) {
-      return res.status(400).json({ message: 'Employee ID or email already exists' });
+    if (existingEmail.rows.length > 0) {
+      return res.status(400).json({ 
+        message: `Email "${email}" is already registered to another employee. Please use a different email address.` 
+      });
     }
 
     const result = await pool.query(

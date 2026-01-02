@@ -399,10 +399,35 @@ export const initializeDatabase = async () => {
         month INTEGER NOT NULL CHECK (month >= 1 AND month <= 12),
         year INTEGER NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(head, subhead, month, year)
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Drop old unique constraint if it exists
+    await pool.query(`
+      DO $$ 
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM pg_constraint 
+          WHERE conname = 'accounting_entries_head_subhead_month_year_key'
+        ) THEN
+          ALTER TABLE accounting_entries 
+          DROP CONSTRAINT accounting_entries_head_subhead_month_year_key;
+        END IF;
+      END $$;
+    `).catch(() => {
+      // Ignore error if constraint doesn't exist
+    });
+
+    // Create partial unique constraint: Only for non-"Once" frequencies
+    // This allows multiple "Once" entries with same head/subhead/month/year
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS accounting_entries_unique_recurring 
+      ON accounting_entries (head, COALESCE(subhead, ''), month, year) 
+      WHERE frequency IS NULL OR frequency != 'Once'
+    `).catch(() => {
+      // Ignore error if index already exists
+    });
 
     console.log('✅ Database tables initialized successfully');
   } catch (error) {

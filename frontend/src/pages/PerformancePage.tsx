@@ -131,7 +131,7 @@ export default function PerformancePage() {
   return (
     <>
       <ToastContainer toasts={toast.toasts} onClose={toast.removeToast} />
-      <div className="space-y-6 overflow-x-hidden max-w-full">
+    <div className="space-y-6 overflow-x-hidden max-w-full">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 overflow-x-hidden max-w-full">
         <div className="flex-1 min-w-0 overflow-x-hidden">
           <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-black dark:text-white truncate">

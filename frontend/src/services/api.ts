@@ -179,24 +179,40 @@ class ApiService {
       const data = await response.json()
 
       if (!response.ok) {
-        console.error(`❌ API Error (${response.status}):`, {
+        // Log detailed error information
+        const errorDetails = {
+          status: response.status,
+          statusText: response.statusText,
           url,
           method: options.method || 'GET',
           error: data
-        })
-        const error = new Error(data.message || `HTTP error! status: ${response.status}`)
+        }
+        console.error(`❌ API Error (${response.status}):`, errorDetails)
+        console.error(`❌ Error Message:`, data.message || `HTTP error! status: ${response.status}`)
+        console.error(`❌ Full Error Response:`, JSON.stringify(data, null, 2))
+        
+        const error = new Error(data.message || `HTTP ${response.status}: ${response.statusText}`)
         ;(error as any).response = { data, url, status: response.status }
         throw error
       }
 
       return data
     } catch (error) {
-      console.error('❌ API Request failed:', {
+      const errorInfo = {
         url,
         method: options.method || 'GET',
-        error: error instanceof Error ? error.message : error,
+        error: error instanceof Error ? error.message : String(error),
         baseURL: this.baseURL
-      })
+      }
+      console.error('❌ API Request failed:', errorInfo)
+      
+      // If error has response data, log it
+      if (error instanceof Error && (error as any).response) {
+        console.error('❌ Response Details:', JSON.stringify((error as any).response, null, 2))
+      }
+      
+      // Log the full error for debugging
+      console.error('❌ Full Error Object:', error)
       
       if (error instanceof Error) {
         // Handle network errors (server not reachable, CORS, etc.)

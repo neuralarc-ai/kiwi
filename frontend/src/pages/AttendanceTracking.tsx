@@ -367,7 +367,7 @@ export default function AttendanceTracking() {
   return (
     <>
       <ToastContainer toasts={toast.toasts} onClose={toast.removeToast} />
-      <div className="space-y-6 overflow-x-hidden max-w-full">
+    <div className="space-y-6 overflow-x-hidden max-w-full">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}

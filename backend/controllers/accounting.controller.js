@@ -143,47 +143,157 @@ export const createAccountingEntry = async (req, res) => {
     const tdsNum = parseFloat(tdsPercentage) || 0
     const gstNum = parseFloat(gstPercentage) || 0
 
-    // Check if entry already exists (unique constraint on head, subhead, month, year)
-    const existingCheck = await pool.query(
-      'SELECT id FROM accounting_entries WHERE head = $1 AND COALESCE(subhead, \'\') = COALESCE($2, \'\') AND month = $3 AND year = $4',
-      [head, subhead || null, monthNum, yearNum]
-    )
+    let result
+    let isUpdate = false
 
-    if (existingCheck.rows.length > 0) {
-      return res.status(400).json({ 
-        message: 'An entry with this head and subhead already exists for this month/year' 
-      })
+    // For "Once" frequency entries, always create a new entry (allow multiple one-time entries)
+    // For other frequencies (Monthly, Quarterly, Yearly), update if exists, create if not
+    if (frequency === 'Once') {
+      // Always insert new entry for "Once" frequency - allow multiple one-time entries
+      // If unique constraint violation occurs, it means the constraint hasn't been updated yet
+      // In that case, we'll add a timestamp to make it unique
+      try {
+        result = await pool.query(
+          `INSERT INTO accounting_entries 
+           (head, subhead, tds_percentage, gst_percentage, frequency, remarks, amount, month, year)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+           RETURNING 
+             id,
+             head,
+             subhead,
+             tds_percentage as "tdsPercentage",
+             gst_percentage as "gstPercentage",
+             frequency,
+             remarks,
+             amount,
+             entry_id as "entryId",
+             month,
+             year`,
+          [
+            head,
+            subhead || null,
+            tdsNum,
+            gstNum,
+            frequency || null,
+            remarks || null,
+            amountNum,
+            monthNum,
+            yearNum
+          ]
+        )
+      } catch (insertError) {
+        // If unique constraint violation for "Once" entry, modify subhead to make it unique
+        if (insertError.code === '23505') {
+          // Add timestamp to subhead to make it unique for "Once" entries
+          const uniqueSubhead = subhead 
+            ? `${subhead} - ${Date.now()}` 
+            : `Entry ${Date.now()}`
+          
+          result = await pool.query(
+            `INSERT INTO accounting_entries 
+             (head, subhead, tds_percentage, gst_percentage, frequency, remarks, amount, month, year)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+             RETURNING 
+               id,
+               head,
+               subhead,
+               tds_percentage as "tdsPercentage",
+               gst_percentage as "gstPercentage",
+               frequency,
+               remarks,
+               amount,
+               entry_id as "entryId",
+               month,
+               year`,
+            [
+              head,
+              uniqueSubhead,
+              tdsNum,
+              gstNum,
+              frequency || null,
+              remarks || null,
+              amountNum,
+              monthNum,
+              yearNum
+            ]
+          )
+        } else {
+          throw insertError
+        }
+      }
+    } else {
+      // For recurring entries (Monthly, Quarterly, Yearly), check if entry exists
+      const existingCheck = await pool.query(
+        'SELECT id FROM accounting_entries WHERE head = $1 AND COALESCE(subhead, \'\') = COALESCE($2, \'\') AND month = $3 AND year = $4',
+        [head, subhead || null, monthNum, yearNum]
+      )
+
+      if (existingCheck.rows.length > 0) {
+        // Update existing entry for recurring frequencies
+        isUpdate = true
+        result = await pool.query(
+          `UPDATE accounting_entries 
+           SET 
+             tds_percentage = $1,
+             gst_percentage = $2,
+             frequency = $3,
+             remarks = $4,
+             amount = $5,
+             updated_at = CURRENT_TIMESTAMP
+           WHERE id = $6
+           RETURNING 
+             id,
+             head,
+             subhead,
+             tds_percentage as "tdsPercentage",
+             gst_percentage as "gstPercentage",
+             frequency,
+             remarks,
+             amount,
+             entry_id as "entryId",
+             month,
+             year`,
+          [
+            tdsNum,
+            gstNum,
+            frequency || null,
+            remarks || null,
+            amountNum,
+            existingCheck.rows[0].id
+          ]
+        )
+      } else {
+        // Insert new entry for recurring frequencies
+        result = await pool.query(
+          `INSERT INTO accounting_entries 
+           (head, subhead, tds_percentage, gst_percentage, frequency, remarks, amount, month, year)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+           RETURNING 
+             id,
+             head,
+             subhead,
+             tds_percentage as "tdsPercentage",
+             gst_percentage as "gstPercentage",
+             frequency,
+             remarks,
+             amount,
+             entry_id as "entryId",
+             month,
+             year`,
+          [
+            head,
+            subhead || null,
+            tdsNum,
+            gstNum,
+            frequency || null,
+            remarks || null,
+            amountNum,
+            monthNum,
+            yearNum
+          ]
+        )
+      }
     }
-
-    // Insert new entry
-    const result = await pool.query(
-      `INSERT INTO accounting_entries 
-       (head, subhead, tds_percentage, gst_percentage, frequency, remarks, amount, month, year)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       RETURNING 
-         id,
-         head,
-         subhead,
-         tds_percentage as "tdsPercentage",
-         gst_percentage as "gstPercentage",
-         frequency,
-         remarks,
-         amount,
-         entry_id as "entryId",
-         month,
-         year`,
-      [
-        head,
-        subhead || null,
-        tdsNum,
-        gstNum,
-        frequency || null,
-        remarks || null,
-        amountNum,
-        monthNum,
-        yearNum
-      ]
-    )
 
     // Convert amounts to numbers
     const row = result.rows[0]
@@ -192,7 +302,9 @@ export const createAccountingEntry = async (req, res) => {
     row.gstPercentage = parseFloat(row.gstPercentage) || 0
 
     res.json({
-      message: 'Accounting entry created successfully',
+      message: isUpdate 
+        ? 'Accounting entry updated successfully' 
+        : 'Accounting entry created successfully',
       data: row
     })
   } catch (error) {

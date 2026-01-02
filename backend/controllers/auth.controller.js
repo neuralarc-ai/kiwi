@@ -137,9 +137,53 @@ export const register = async (req, res) => {
 
 // Helper function to generate employee ID
 const generateEmployeeId = async () => {
-  const result = await pool.query('SELECT COUNT(*) FROM employees');
-  const count = parseInt(result.rows[0].count);
-  return `EMP${String(count + 1).padStart(4, '0')}`;
+  // Get all existing employee IDs that match the EMP pattern
+  const result = await pool.query(
+    "SELECT employee_id FROM employees WHERE employee_id LIKE 'EMP%' ORDER BY employee_id DESC"
+  );
+  
+  if (result.rows.length === 0) {
+    return 'EMP0001';
+  }
+  
+  // Extract the numeric part from all employee IDs and find the maximum
+  let maxNumber = 0;
+  for (const row of result.rows) {
+    const match = row.employee_id.match(/^EMP(\d+)$/);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num > maxNumber) {
+        maxNumber = num;
+      }
+    }
+  }
+  
+  // Find the next available ID by checking if it exists
+  let nextNumber = maxNumber + 1;
+  let attempts = 0;
+  const maxAttempts = 1000; // Safety limit
+  
+  while (attempts < maxAttempts) {
+    const candidateId = `EMP${String(nextNumber).padStart(4, '0')}`;
+    
+    // Check if this ID already exists
+    const checkResult = await pool.query(
+      'SELECT employee_id FROM employees WHERE employee_id = $1',
+      [candidateId]
+    );
+    
+    if (checkResult.rows.length === 0) {
+      // This ID is available
+      return candidateId;
+    }
+    
+    // ID exists, try next number
+    nextNumber++;
+    attempts++;
+  }
+  
+  // Fallback: if we somehow can't find an ID, use timestamp-based
+  return `EMP${Date.now().toString().slice(-4)}`;
 };
 
 // Helper function to create employee record
