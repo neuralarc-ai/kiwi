@@ -145,15 +145,15 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, employee 
       setLoading(true)
       setError('')
 
-      // Prepare data for API - convert empty strings to null and format salary
+      // Prepare data for API - convert empty strings to undefined and format salary
       const employeeData = {
         ...formData,
-        phone: formData.phone || null,
-        department: formData.department || null,
-        position: formData.position || null,
-        hire_date: formData.hire_date || null,
-        salary: formData.salary ? parseFloat(formData.salary) : null,
-        address: formData.address || null,
+        phone: formData.phone || undefined,
+        department: formData.department || undefined,
+        position: formData.position || undefined,
+        hire_date: formData.hire_date || undefined,
+        salary: formData.salary ? parseFloat(formData.salary) : undefined,
+        address: formData.address || undefined,
       }
 
       console.log('📤 Creating employee with data:', employeeData)
