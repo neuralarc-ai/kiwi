@@ -377,12 +377,27 @@ export default function PayrollPage() {
                       </td>
                       <td className="py-4 px-4">
                         <div>
-                          <div className="font-medium text-sm">
-                            ₹{Number(payroll.net_salary || 0).toLocaleString('en-IN')}
-                          </div>
-                          <div className="text-xs text-orange-600 mt-0.5" style={{ color: 'hsl(var(--palette-red-orange))' }}>
-                            ₹{Number(payroll.deductions || 0).toLocaleString('en-IN')} deductions
-                          </div>
+                          {(() => {
+                            // Calculate correct values
+                            const basicSalary = Number(payroll.basic_salary || payroll.salary || 0)
+                            const allowances = Number(payroll.allowances || 0)
+                            const grossSalary = basicSalary + allowances
+                            const tds = Number(payroll.tds || 0)
+                            const leaveDeduction = Number(payroll.leave_deduction || 0)
+                            const totalDeductions = tds + leaveDeduction
+                            const netSalary = grossSalary - totalDeductions
+                            
+                            return (
+                              <>
+                                <div className="font-medium text-sm">
+                                  ₹{netSalary.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                                </div>
+                                <div className="text-xs text-orange-600 mt-0.5" style={{ color: 'hsl(var(--palette-red-orange))' }}>
+                                  ₹{totalDeductions.toLocaleString('en-IN', { maximumFractionDigits: 2 })} deductions
+                                </div>
+                              </>
+                            )
+                          })()}
                         </div>
                       </td>
                       <td className="py-4 px-4">

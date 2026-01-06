@@ -80,24 +80,25 @@ export default function PaymentReceipt({ payroll, employeeName, onDownload }: Pa
     return 0
   }
 
-  // Calculate salary components
+  // Calculate salary components - use values from backend (they are already calculated correctly)
   const employeeSalary = toNumber((payroll as any).salary)
   const payrollBasicSalary = toNumber(payroll.basic_salary)
   const actualBasicSalary = employeeSalary > 0 ? employeeSalary : payrollBasicSalary
   const allowances = toNumber(payroll.allowances)
   const grossSalary = actualBasicSalary + allowances
-  const tdsAmount = grossSalary * 0.10
+  
+  // Use TDS from backend (already calculated correctly by backend)
+  // Backend calculates TDS as 10% of gross salary (basic + allowances)
+  const tdsAmount = toNumber(payroll.tds)
+  
+  // Use leave deduction from backend (already calculated correctly by backend)
+  // Leave deduction is only applied if employee takes more than 2 leaves
   const leaveDeductionAmount = toNumber(payroll.leave_deduction)
-  const storedTotalDeductions = toNumber(payroll.deductions)
-  const storedTDS = toNumber(payroll.tds)
-  const storedLeaveDeduction = toNumber(payroll.leave_deduction)
   
-  let otherDeductions = 0
-  if (storedTotalDeductions > 0 && storedTotalDeductions < grossSalary) {
-    otherDeductions = Math.max(0, storedTotalDeductions - storedTDS - storedLeaveDeduction)
-  }
+  // Total deductions = TDS + Leave Deduction only (no other deductions)
+  const totalDeductions = tdsAmount + leaveDeductionAmount
   
-  const totalDeductions = tdsAmount + leaveDeductionAmount + otherDeductions
+  // Calculate net salary = Gross Salary - Total Deductions
   const netSalary = grossSalary - totalDeductions
 
   // Get working days and leaves (assuming 22 working days per month, can be adjusted)
@@ -203,15 +204,19 @@ export default function PaymentReceipt({ payroll, employeeName, onDownload }: Pa
     pdf.setFont('helvetica', 'bold')
     pdf.text('DEDUCTIONS', margin + tableWidth + 10 + tableWidth / 2, tableY + 5, { align: 'center' })
     
+    // Adjust deduction table height based on whether leave deduction exists
+    const deductionTableHeight = leaveDeductionAmount > 0 ? 20 : 10
     pdf.setFillColor(255, 255, 255)
-    pdf.rect(margin + tableWidth + 10, tableY + 8, tableWidth, 20, 'F')
+    pdf.rect(margin + tableWidth + 10, tableY + 8, tableWidth, deductionTableHeight, 'F')
     pdf.setFontSize(10)
     pdf.setFont('helvetica', 'normal')
-    pdf.text('TDS', margin + tableWidth + 15, tableY + 14)
+    pdf.text('TDS (10%)', margin + tableWidth + 15, tableY + 14)
     pdf.text(formatCurrency(tdsAmount), margin + tableWidth + 10 + tableWidth - 5, tableY + 14, { align: 'right' })
     
-    pdf.text('Leave Deduction', margin + tableWidth + 15, tableY + 21)
-    pdf.text(formatCurrency(leaveDeductionAmount), margin + tableWidth + 10 + tableWidth - 5, tableY + 21, { align: 'right' })
+    if (leaveDeductionAmount > 0) {
+      pdf.text('Leave Deduction', margin + tableWidth + 15, tableY + 21)
+      pdf.text(formatCurrency(leaveDeductionAmount), margin + tableWidth + 10 + tableWidth - 5, tableY + 21, { align: 'right' })
+    }
     
     yPos = tableY + 30
 
@@ -362,13 +367,15 @@ export default function PaymentReceipt({ payroll, employeeName, onDownload }: Pa
               </div>
               <div className="border border-t-0 border-gray-900 dark:border-gray-300 p-4 rounded-b space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-sm">TDS</span>
+                  <span className="text-sm">TDS (10%)</span>
                   <span className="text-sm font-medium">{formatCurrency(tdsAmount)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">Leave Deduction</span>
-                  <span className="text-sm font-medium">{formatCurrency(leaveDeductionAmount)}</span>
-                </div>
+                {leaveDeductionAmount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-sm">Leave Deduction</span>
+                    <span className="text-sm font-medium">{formatCurrency(leaveDeductionAmount)}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
