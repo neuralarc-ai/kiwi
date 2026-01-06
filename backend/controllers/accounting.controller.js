@@ -122,9 +122,15 @@ export const updateAccountingAmount = async (req, res) => {
 // Create a new accounting entry
 export const createAccountingEntry = async (req, res) => {
   try {
+    console.log('📝 Create accounting entry request:', {
+      body: req.body,
+      user: req.user
+    })
+    
     const { head, subhead, tdsPercentage, gstPercentage, frequency, remarks, amount, month, year } = req.body
 
     if (!head || !month || !year) {
+      console.error('❌ Missing required fields:', { head, month, year })
       return res.status(400).json({ message: 'Head, month, and year are required' })
     }
 
@@ -308,8 +314,40 @@ export const createAccountingEntry = async (req, res) => {
       data: row
     })
   } catch (error) {
-    console.error('Create accounting entry error:', error)
-    res.status(500).json({ message: 'Server error', error: error.message })
+    console.error('❌ Create accounting entry error:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      constraint: error.constraint,
+      stack: error.stack
+    })
+    
+    // Return more specific error messages
+    if (error.code === '23505') {
+      return res.status(400).json({ 
+        message: 'An entry with this head, subhead, month, and year already exists',
+        error: error.detail || error.message
+      })
+    }
+    
+    if (error.code === '23503') {
+      return res.status(400).json({ 
+        message: 'Invalid reference: The head or subhead does not exist',
+        error: error.detail || error.message
+      })
+    }
+    
+    if (error.code === '23514') {
+      return res.status(400).json({ 
+        message: 'Data validation failed: ' + (error.detail || error.message),
+        error: error.detail || error.message
+      })
+    }
+    
+    res.status(500).json({ 
+      message: 'Server error: ' + (error.message || 'Failed to create accounting entry'),
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    })
   }
 }
 

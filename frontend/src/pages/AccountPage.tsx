@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react"
+import { motion } from "framer-motion"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -13,7 +14,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calculator, Loader2, TrendingUp, Plus, Filter, ChevronDown, ChevronUp } from "lucide-react"
+import { Calculator, Loader2, TrendingUp, Plus, ChevronDown, ChevronUp, Info, X } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { apiService } from "@/services/api"
 import { useToast, ToastContainer } from "@/components/ui/toast"
@@ -60,8 +61,7 @@ export default function AccountPage() {
   const [newEntry, setNewEntry] = useState({
     head: "",
     subhead: "",
-    tdsPercentage: "10",
-    gstPercentage: "18",
+    gstPercentage: "0",
     frequency: "Monthly",
     remarks: "",
     amount: "0"
@@ -75,6 +75,7 @@ export default function AccountPage() {
     "5. Marketing": false,
     "6. Tax & Compliance": false,
   })
+  const [showHelpCard, setShowHelpCard] = useState(false)
 
   // Fetch accounting data
   const fetchAccountingData = async () => {
@@ -169,7 +170,7 @@ export default function AccountPage() {
       await apiService.createAccountingEntry(token, {
         head: newEntry.head.trim(),
         subhead: newEntry.subhead.trim() || undefined,
-        tdsPercentage: parseFloat(newEntry.tdsPercentage) || 0,
+        tdsPercentage: 0,
         gstPercentage: parseFloat(newEntry.gstPercentage) || 0,
         frequency: newEntry.frequency || undefined,
         remarks: newEntry.remarks.trim() || undefined,
@@ -182,8 +183,7 @@ export default function AccountPage() {
       setNewEntry({
         head: "",
         subhead: "",
-        tdsPercentage: "10",
-        gstPercentage: "18",
+        gstPercentage: "0",
         frequency: "Monthly",
         remarks: "",
         amount: "0"
@@ -331,32 +331,40 @@ export default function AccountPage() {
     },
   }
 
-  // Define main category groups
+  // Define main category groups - matching Vendors section structure
   const categoryGroups: Record<string, { label: string; heads: string[] }> = {
     "all": {
       label: "All Categories",
       heads: []
     },
     "salary": {
-      label: "Salary & Compensation",
+      label: "Salary & Wages",
       heads: ["Salary & Wages"]
     },
-    "operations": {
-      label: "Operations",
-      heads: ["Rent", "Utilities", "Office Expenses", "Professional Services", "Contractor Payments", "Interest Paid", "Travel & Conveyance", "Marketing & Advertising", "Insurance", "Miscellaneous Expenses"]
+    "vendors": {
+      label: "Vendors",
+      heads: [] // Will be filtered separately to exclude Salary & Tax
     },
     "tax": {
       label: "Tax & Compliance",
-      heads: ["TDS Payable", "GST Payable"]
+      heads: ["GST Payable"]
     }
   }
 
   // Filter data by selected category group
   const filteredData = accountingData?.filter((entry) => {
     if (selectedCategory === "all") return true
-    const category = categoryGroups[selectedCategory]
-    if (!category) return false
-    return category.heads.includes(entry.head)
+    if (selectedCategory === "salary") {
+      return entry.head === "Salary & Wages"
+    }
+    if (selectedCategory === "vendors") {
+      // Show all entries except Salary & Tax (matching Vendors section)
+      return entry.head !== "Salary & Wages" && entry.head !== "GST Payable"
+    }
+    if (selectedCategory === "tax") {
+      return entry.head === "GST Payable"
+    }
+    return false
   }) || []
 
   // Group entries into categories
@@ -385,13 +393,12 @@ export default function AccountPage() {
   )
 
   const taxLiabilities = filteredData.filter(
-    (entry) => entry.head === "TDS Payable" || entry.head === "GST Payable"
+    (entry) => entry.head === "GST Payable"
   )
 
   // Calculate vendor entries (all entries except Salary & Tax)
   const vendorEntries = filteredData.filter(
     (entry) => entry.head !== "Salary & Wages" && 
-               entry.head !== "TDS Payable" && 
                entry.head !== "GST Payable"
   )
 
@@ -411,17 +418,20 @@ export default function AccountPage() {
       return sum + numAmount
     }, 0)
 
+    // Check if this is Salary & Wages table
+    const isSalaryTable = title.includes("Salary") || entries.some(e => e.head === "Salary & Wages")
+
     return (
-      <Card variant="glass" className="mb-6">
-        <CardHeader>
+      <Card variant="glass" className="mb-6 overflow-hidden">
+        <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className={`p-3 rounded-xl ${color}`}>
                 <Calculator className="h-6 w-6" />
               </div>
               <div>
-                <CardTitle className="text-lg sm:text-xl">{title}</CardTitle>
-                <p className="text-sm text-muted-foreground">
+                <CardTitle className="text-base sm:text-lg">{title}</CardTitle>
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   {entries.length} {entries.length === 1 ? "entry" : "entries"}
                 </p>
               </div>
@@ -433,8 +443,7 @@ export default function AccountPage() {
                   setNewEntry({
                     head: "",
                     subhead: "",
-                    tdsPercentage: "10",
-                    gstPercentage: "18",
+                    gstPercentage: "0",
                     frequency: "Monthly",
                     remarks: "",
                     amount: "0"
@@ -488,32 +497,18 @@ export default function AccountPage() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="tdsPercentage">TDS Percentage (%)</Label>
-                        <Input
-                          id="tdsPercentage"
-                          type="number"
-                          min="0"
-                          max="100"
-                          step="0.01"
-                          value={newEntry.tdsPercentage}
-                          onChange={(e) => setNewEntry({ ...newEntry, tdsPercentage: e.target.value })}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="gstPercentage">GST Percentage (%)</Label>
-                        <Input
-                          id="gstPercentage"
-                          type="number"
-                          min="0"
-                          max="100"
-                          step="0.01"
-                          value={newEntry.gstPercentage}
-                          onChange={(e) => setNewEntry({ ...newEntry, gstPercentage: e.target.value })}
-                        />
-                      </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="gstPercentage">GST/Tax Percentage (%)</Label>
+                      <Input
+                        id="gstPercentage"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={newEntry.gstPercentage}
+                        onChange={(e) => setNewEntry({ ...newEntry, gstPercentage: e.target.value })}
+                        placeholder="0"
+                      />
                     </div>
 
                     <div className="space-y-2">
@@ -565,8 +560,7 @@ export default function AccountPage() {
                         setNewEntry({
                           head: "",
                           subhead: "",
-                          tdsPercentage: "10",
-                          gstPercentage: "18",
+                          gstPercentage: "0",
                           frequency: "Monthly",
                           remarks: "",
                           amount: "0"
@@ -615,21 +609,20 @@ export default function AccountPage() {
           </div>
         </CardHeader>
         {expandedSections[title] && (
-          <CardContent>
+          <CardContent className="p-0">
             <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left p-3 font-semibold text-sm">Head</th>
-                  <th className="text-left p-3 font-semibold text-sm">Subhead</th>
-                  <th className="text-right p-3 font-semibold text-sm">TDS %</th>
-                  <th className="text-right p-3 font-semibold text-sm">GST %</th>
-                  <th className="text-left p-3 font-semibold text-sm">Frequency</th>
-                  <th className="text-left p-3 font-semibold text-sm">Remarks</th>
-                  <th className="text-right p-3 font-semibold text-sm">Amount (₹)</th>
+                <tr className="border-b border-gray-200 dark:border-gray-700">
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Head</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Subhead</th>
+                  <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-24">{isSalaryTable ? "TDS %" : "GST/Tax %"}</th>
+                  <th className="text-left py-3 px-4 pl-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Frequency</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Remarks</th>
+                  <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Amount (₹)</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {entries.map((entry) => {
                   const isSaving = savingIds.has(entry.id)
                   const localAmount = localAmounts[entry.id] ?? entry.amount
@@ -639,23 +632,23 @@ export default function AccountPage() {
                   return (
                     <tr
                       key={entry.id}
-                      className="border-b border-border hover:bg-muted/50 transition-colors"
+                      className="border-b border-gray-200 dark:border-gray-700"
                     >
-                      <td className="p-3 text-sm font-medium">{entry.head}</td>
-                      <td className="p-3 text-sm text-muted-foreground">
+                      <td className="py-4 px-4 text-sm font-medium">{entry.head}</td>
+                      <td className="py-4 px-4 text-sm text-muted-foreground">
                         {entry.subhead || "-"}
                       </td>
-                      <td className="p-3 text-sm text-right">
-                        {entry.tdsPercentage > 0 ? `${entry.tdsPercentage}%` : "-"}
+                      <td className="py-4 px-4 text-sm text-center">
+                        {isSalaryTable 
+                          ? (entry.tdsPercentage > 0 ? `${entry.tdsPercentage}%` : "-")
+                          : (entry.gstPercentage > 0 ? `${entry.gstPercentage}%` : "-")
+                        }
                       </td>
-                      <td className="p-3 text-sm text-right">
-                        {entry.gstPercentage > 0 ? `${entry.gstPercentage}%` : "-"}
-                      </td>
-                      <td className="p-3 text-sm">{entry.frequency || "-"}</td>
-                      <td className="p-3 text-sm text-muted-foreground max-w-xs truncate">
+                      <td className="py-4 px-4 pl-6 text-sm">{entry.frequency || "-"}</td>
+                      <td className="py-4 px-4 text-sm text-muted-foreground break-words">
                         {entry.remarks || "-"}
                       </td>
-                      <td className="p-3">
+                      <td className="py-4 px-4">
                         <div className="flex items-center justify-end gap-2">
                           {entry.head === "Salary & Wages" ? (
                             <>
@@ -665,7 +658,7 @@ export default function AccountPage() {
                                 step="0.01"
                                 value={displayAmount || ""}
                                 disabled={true}
-                                className="w-32 text-right bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
+                                className="w-28 text-right text-sm px-2 bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
                                 title="Auto-synced from payroll (read-only)"
                               />
                               <span className="text-xs text-muted-foreground" title="Auto-synced from payroll">
@@ -689,7 +682,7 @@ export default function AccountPage() {
                                     e.currentTarget.blur()
                                   }
                                 }}
-                                className="w-32 text-right"
+                                className="w-28 text-right text-sm px-2"
                                 disabled={isSaving}
                               />
                               {isSaving && (
@@ -704,11 +697,11 @@ export default function AccountPage() {
                 })}
               </tbody>
               <tfoot>
-                <tr className="border-t-2 border-border font-semibold bg-muted/50">
-                  <td colSpan={6} className="p-3 text-sm text-right">
+                <tr className="border-t-2 border-gray-200 dark:border-gray-700 font-semibold bg-muted/50">
+                  <td colSpan={5} className="py-3 px-4 text-sm text-right">
                     Total:
                   </td>
-                  <td className="p-3 text-sm text-right">{formatCurrency(total)}</td>
+                  <td className="py-3 px-4 text-sm text-right">{formatCurrency(total)}</td>
                 </tr>
               </tfoot>
             </table>
@@ -723,7 +716,13 @@ export default function AccountPage() {
     <>
       <ToastContainer toasts={toast.toasts} onClose={toast.removeToast} />
       <div className="space-y-6 overflow-x-hidden max-w-full">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+      >
         <div>
           <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-2 gradient-text">Accounts Master</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
@@ -732,7 +731,7 @@ export default function AccountPage() {
         </div>
         <Dialog open={isEstimateDialogOpen} onOpenChange={setIsEstimateDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2">
+            <Button className="gap-2 w-full sm:w-auto">
               <TrendingUp className="h-4 w-4" />
               Estimate Future Months
             </Button>
@@ -942,95 +941,85 @@ export default function AccountPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
+      </motion.div>
 
-      {/* Month/Year Selector */}
-      <Card variant="glass">
-        <CardContent className="p-5">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="month-select" className="whitespace-nowrap">
-                Month:
-              </Label>
-              <Select
-                value={selectedMonth.toString()}
-                  onValueChange={(value) => {
-                    setSelectedMonth(parseInt(value))
-                    setLocalAmounts({})
-                    setSelectedCategory("all")
-                  }}
+      {/* Filter Bar - Unity Style */}
+      <Card variant="glass" className="p-4">
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+          {/* Left side - Dropdowns */}
+          <div className="flex flex-wrap gap-3 flex-1">
+            {/* Month Dropdown */}
+            <div className="relative">
+              <select
+                value={selectedMonth}
+                onChange={(e) => {
+                  setSelectedMonth(parseInt(e.target.value))
+                  setLocalAmounts({})
+                  setSelectedCategory("all")
+                }}
+                className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 pr-8 text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20"
               >
-                <SelectTrigger id="month-select" className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {monthNames.map((month, index) => (
-                    <SelectItem key={index} value={(index + 1).toString()}>
-                      {month}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {monthNames.map((month, index) => (
+                  <option key={index} value={index + 1}>
+                    {month}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" size={16} />
             </div>
 
-            <div className="flex items-center gap-2">
-              <Label htmlFor="year-select" className="whitespace-nowrap">
-                Year:
-              </Label>
-              <Select
-                value={selectedYear.toString()}
-                  onValueChange={(value) => {
-                    setSelectedYear(parseInt(value))
-                    setLocalAmounts({})
-                    setSelectedCategory("all")
-                  }}
+            {/* Year Dropdown */}
+            <div className="relative">
+              <select
+                value={selectedYear}
+                onChange={(e) => {
+                  setSelectedYear(parseInt(e.target.value))
+                  setLocalAmounts({})
+                  setSelectedCategory("all")
+                }}
+                className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 pr-8 text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20"
               >
-                <SelectTrigger id="year-select" className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {years.map((year) => (
-                    <SelectItem key={year} value={year.toString()}>
-                      {year}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {years.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" size={16} />
             </div>
 
+            {/* Category Filter Dropdown */}
             {accountingData && accountingData.length > 0 && (
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-muted-foreground" />
-                <Label htmlFor="category-select" className="whitespace-nowrap">
-                  Category:
-                </Label>
-                <Select
+              <div className="relative">
+                <select
                   value={selectedCategory}
-                  onValueChange={setSelectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 pr-8 text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20"
                 >
-                  <SelectTrigger id="category-select" className="w-[200px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(categoryGroups).map(([key, group]) => (
-                      <SelectItem key={key} value={key}>
-                        {group.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  {Object.entries(categoryGroups).map(([key, group]) => (
+                    <option key={key} value={key}>
+                      {group.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" size={16} />
               </div>
             )}
-
           </div>
-        </CardContent>
+        </div>
       </Card>
 
       {/* Accounting Tables */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
+        <Card variant="glass">
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-20 w-full rounded-lg bg-gray-200/50 dark:bg-gray-800/50 animate-pulse" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       ) : error ? (
         <Card variant="glass">
           <CardContent className="text-center py-12">
@@ -1044,6 +1033,7 @@ export default function AccountPage() {
         <Card variant="glass">
           <CardContent className="text-center py-12">
             <div className="space-y-4">
+              <Calculator className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
               <p className="text-muted-foreground text-base">
                 No accounting data available for {monthNames[selectedMonth - 1]} {selectedYear}
               </p>
@@ -1075,7 +1065,7 @@ export default function AccountPage() {
           {renderTable(
             "1. Salary",
             salaryEntries,
-            "bg-green-500/10 text-green-600 dark:text-green-400",
+            "bg-green-500/10 text-green-600 dark:text-[#27584F]",
             "Salary & Wages"
           )}
 
@@ -1141,20 +1131,50 @@ export default function AccountPage() {
       )}
 
       {/* Info Card */}
-      <Card variant="glass" className="bg-blue-500/10 border-blue-500/20">
-        <CardHeader>
-          <CardTitle>How to Use</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-            <li>All accounting heads are pre-filled with TDS and GST rules</li>
-            <li>Only the <strong>Amount</strong> field is editable</li>
-            <li>Changes are automatically saved when you click outside the input field</li>
-            <li>Select a different month/year to view or edit entries for that period</li>
-            <li>TDS and GST calculations follow Indian Income Tax Act and GST regulations</li>
-          </ul>
-        </CardContent>
-      </Card>
+      {showHelpCard && (
+        <Card variant="glass" className="bg-blue-500/10 border-blue-500/20">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Info size={20} className="text-blue-600 dark:text-blue-400" />
+                How to Use
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setShowHelpCard(false)}
+                aria-label="Close help card"
+              >
+                <X size={16} />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+              <li>All accounting heads are pre-filled with GST/tax rules</li>
+              <li>Only the <strong>Amount</strong> field is editable</li>
+              <li>Changes are automatically saved when you click outside the input field</li>
+              <li>Select a different month/year to view or edit entries for that period</li>
+              <li>GST/tax calculations follow applicable tax regulations</li>
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Show Help Button (when card is hidden) */}
+      {!showHelpCard && (
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            onClick={() => setShowHelpCard(true)}
+            className="gap-2"
+          >
+            <Info size={16} />
+            Show Help
+          </Button>
+        </div>
+      )}
     </div>
     </>
   )

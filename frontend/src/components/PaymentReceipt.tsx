@@ -10,6 +10,38 @@ interface PaymentReceiptProps {
   onDownload?: () => void
 }
 
+// Helper function to convert number to words
+const numberToWords = (num: number): string => {
+  const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen']
+  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
+
+  if (num === 0) return 'Zero'
+  if (num < 20) return ones[num]
+  if (num < 100) {
+    const ten = Math.floor(num / 10)
+    const one = num % 10
+    return tens[ten] + (one > 0 ? ' ' + ones[one] : '')
+  }
+  if (num < 1000) {
+    const hundred = Math.floor(num / 100)
+    const remainder = num % 100
+    return ones[hundred] + ' Hundred' + (remainder > 0 ? ' ' + numberToWords(remainder) : '')
+  }
+  if (num < 100000) {
+    const thousand = Math.floor(num / 1000)
+    const remainder = num % 1000
+    return numberToWords(thousand) + ' Thousand' + (remainder > 0 ? ' ' + numberToWords(remainder) : '')
+  }
+  if (num < 10000000) {
+    const lakh = Math.floor(num / 100000)
+    const remainder = num % 100000
+    return numberToWords(lakh) + ' Lakh' + (remainder > 0 ? ' ' + numberToWords(remainder) : '')
+  }
+  const crore = Math.floor(num / 10000000)
+  const remainder = num % 10000000
+  return numberToWords(crore) + ' Crore' + (remainder > 0 ? ' ' + numberToWords(remainder) : '')
+}
+
 export default function PaymentReceipt({ payroll, employeeName, onDownload }: PaymentReceiptProps) {
   const receiptRef = useRef<HTMLDivElement>(null)
 
@@ -23,12 +55,10 @@ export default function PaymentReceipt({ payroll, employeeName, onDownload }: Pa
   }
 
   const formatCurrency = (amount: number | string | undefined | null) => {
-    if (amount === undefined || amount === null || amount === '') return '₹0.00'
-    // Convert to number if it's a string
+    if (amount === undefined || amount === null || amount === '') return '₹0'
     const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount
-    // Check if it's a valid number
-    if (isNaN(numAmount) || !isFinite(numAmount)) return '₹0.00'
-    return `₹${numAmount.toFixed(2)}`
+    if (isNaN(numAmount) || !isFinite(numAmount)) return '₹0'
+    return `₹${numAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
   }
 
   const getMonthName = (month: number | undefined) => {
@@ -38,193 +68,6 @@ export default function PaymentReceipt({ payroll, employeeName, onDownload }: Pa
       'July', 'August', 'September', 'October', 'November', 'December'
     ]
     return months[month - 1]
-  }
-
-  const generatePDF = () => {
-    if (!receiptRef.current) return
-
-    const pdf = new jsPDF('p', 'mm', 'a4')
-    const pageWidth = pdf.internal.pageSize.getWidth()
-    const margin = 20
-    const contentWidth = pageWidth - 2 * margin
-    let yPos = margin
-    
-    // ALWAYS use employee salary as source of truth for basic salary (for PDF)
-    // Always prioritize employee salary - it's the source of truth
-    const employeeSalary = parseFloat(String((payroll as any).salary || 0)) || 0
-    const payrollBasicSalary = parseFloat(String(payroll.basic_salary || 0)) || 0
-    // Only use payroll basic_salary if employee salary is 0 or not available
-    const actualBasicSalary = employeeSalary > 0 ? employeeSalary : payrollBasicSalary
-    const allowances = parseFloat(String(payroll.allowances || 0)) || 0
-    
-    // ALWAYS calculate TDS as 10% of gross salary (don't trust stored value)
-    const grossSalary = actualBasicSalary + allowances
-    const tdsAmount = grossSalary * 0.10
-    
-    // Calculate leave deduction - use stored value (it's calculated by backend)
-    const leaveDeductionAmount = parseFloat(String(payroll.leave_deduction || 0)) || 0
-    
-    // Calculate other deductions correctly
-    const storedTotalDeductions = parseFloat(String(payroll.deductions || 0)) || 0
-    const storedTDS = parseFloat(String(payroll.tds || 0)) || 0
-    const storedLeaveDeduction = parseFloat(String(payroll.leave_deduction || 0)) || 0
-    
-    // Calculate other deductions: stored total - (stored TDS + stored leave deduction)
-    // But if stored total is suspiciously large, assume other deductions are 0
-    let otherDeductions = 0
-    if (storedTotalDeductions > 0 && storedTotalDeductions < grossSalary) {
-      // Only use stored deductions if it's reasonable (less than gross salary)
-      otherDeductions = Math.max(0, storedTotalDeductions - storedTDS - storedLeaveDeduction)
-    } else {
-      // If stored deductions is wrong (too large or negative), set other deductions to 0
-      otherDeductions = 0
-    }
-    
-    // Recalculate total deductions from scratch (TDS + Leave + Other)
-    const totalDeductions = tdsAmount + leaveDeductionAmount + otherDeductions
-    const netSalary = grossSalary - totalDeductions
-
-    // Helper function to add text with word wrap
-    const addText = (text: string, x: number, y: number, fontSize: number = 12, align: 'left' | 'center' | 'right' = 'left', maxWidth?: number) => {
-      pdf.setFontSize(fontSize)
-      const lines = pdf.splitTextToSize(text, maxWidth || contentWidth)
-      pdf.text(lines, x, y, { align })
-      return lines.length * (fontSize * 0.4) + 2
-    }
-
-    // Company Header
-    pdf.setFontSize(20)
-    pdf.setFont('helvetica', 'bold')
-    pdf.text('PAYMENT RECEIPT', pageWidth / 2, yPos, { align: 'center' })
-    yPos += 10
-
-    pdf.setFontSize(12)
-    pdf.setFont('helvetica', 'normal')
-    //pdf.text('HR Management System', pageWidth / 2, yPos, { align: 'center' })
-    yPos += 15
-
-    // Receipt Details
-    pdf.setFontSize(10)
-    pdf.setFont('helvetica', 'normal')
-    const receiptDate = new Date().toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric'
-    })
-    pdf.text(`Date: ${receiptDate}`, margin, yPos)
-    yPos += 8
-
-    const receiptNumber = `REC-${payroll.year}-${String(payroll.month || 0).padStart(2, '0')}-${payroll.employee_id}`
-    pdf.text(`Receipt No: ${receiptNumber}`, margin, yPos)
-    yPos += 15
-
-    // Employee Information
-    pdf.setFontSize(14)
-    pdf.setFont('helvetica', 'bold')
-    pdf.text('Employee Information', margin, yPos)
-    yPos += 8
-
-    pdf.setFontSize(11)
-    pdf.setFont('helvetica', 'normal')
-    yPos += addText(`Name: ${employeeName}`, margin, yPos, 11)
-    if (payroll.emp_id) {
-      yPos += addText(`Employee ID: ${payroll.emp_id}`, margin, yPos, 11)
-    }
-    if (payroll.department) {
-      yPos += addText(`Department: ${payroll.department}`, margin, yPos, 11)
-    }
-    if (payroll.position) {
-      yPos += addText(`Position: ${payroll.position}`, margin, yPos, 11)
-    }
-    yPos += 10
-
-    // Payment Period
-    pdf.setFontSize(11)
-    pdf.setFont('helvetica', 'normal')
-    const paymentPeriod = `${getMonthName(payroll.month)} ${payroll.year}`
-    yPos += addText(`Payment Period: ${paymentPeriod}`, margin, yPos, 11)
-    yPos += 15
-
-    // Salary Breakdown
-    pdf.setFontSize(14)
-    pdf.setFont('helvetica', 'bold')
-    pdf.text('Salary Breakdown', margin, yPos)
-    yPos += 8
-
-    pdf.setFontSize(11)
-    pdf.setFont('helvetica', 'normal')
-
-    // Basic Salary - always use employee salary as source of truth
-    pdf.text('Basic Salary:', margin, yPos)
-    pdf.text(formatCurrency(actualBasicSalary), pageWidth - margin, yPos, { align: 'right' })
-    yPos += 7
-
-    // Allowances - Always show (use calculated value)
-    pdf.text('Allowances:', margin, yPos)
-    pdf.text(formatCurrency(allowances), pageWidth - margin, yPos, { align: 'right' })
-    yPos += 7
-
-    // Gross Salary (Total)
-    pdf.setFont('helvetica', 'bold')
-    pdf.text('Gross Salary (Total):', margin, yPos)
-    pdf.text(formatCurrency(grossSalary), pageWidth - margin, yPos, { align: 'right' })
-    yPos += 10
-
-    // Deductions Section
-    pdf.setFontSize(14)
-    pdf.setFont('helvetica', 'bold')
-    pdf.text('Deductions', margin, yPos)
-    yPos += 8
-
-    pdf.setFontSize(11)
-    pdf.setFont('helvetica', 'normal')
-
-    // TDS - Always show (10% of gross salary) - deducted from basic salary
-    pdf.text('TDS (Tax Deducted at Source - 10% of Gross Salary):', margin, yPos)
-    pdf.text(formatCurrency(tdsAmount), pageWidth - margin, yPos, { align: 'right' })
-    yPos += 7
-
-    // Leave Deduction - Always show (show 0 if no deduction)
-    const leaveDeductionLabel = leaveDeductionAmount === 0 
-      ? 'Leave Deduction (≤2 leaves - No deduction):' 
-      : 'Leave Deduction (More than 2 leaves):'
-    pdf.text(leaveDeductionLabel, margin, yPos)
-    pdf.text(formatCurrency(leaveDeductionAmount), pageWidth - margin, yPos, { align: 'right' })
-    yPos += 7
-
-    // Other Deductions
-    if (otherDeductions > 0) {
-      pdf.text('Other Deductions:', margin, yPos)
-      pdf.text(formatCurrency(otherDeductions), pageWidth - margin, yPos, { align: 'right' })
-      yPos += 7
-    }
-
-    // Total Deductions
-    pdf.setFont('helvetica', 'bold')
-    pdf.text('Total Deductions:', margin, yPos)
-    pdf.text(formatCurrency(totalDeductions), pageWidth - margin, yPos, { align: 'right' })
-    yPos += 10
-
-    // Net Salary
-    pdf.setFontSize(16)
-    pdf.setFont('helvetica', 'bold')
-    pdf.text('Net Salary:', margin, yPos)
-    pdf.text(formatCurrency(netSalary), pageWidth - margin, yPos, { align: 'right' })
-    yPos += 15
-
-    // Footer - Removed computer-generated text
-    // pdf.setFontSize(10)
-    // pdf.setFont('helvetica', 'italic')
-    // pdf.text('This is a computer-generated receipt.', pageWidth / 2, pageHeight - 20, { align: 'center' })
-    // pdf.text('No signature required.', pageWidth / 2, pageHeight - 15, { align: 'center' })
-
-    // Save PDF
-    const fileName = `Payment_Receipt_${employeeName.replace(/\s+/g, '_')}_${getMonthName(payroll.month)}_${payroll.year}.pdf`
-    pdf.save(fileName)
-
-    if (onDownload) {
-      onDownload()
-    }
   }
 
   // Helper function to safely convert to number
@@ -237,70 +80,208 @@ export default function PaymentReceipt({ payroll, employeeName, onDownload }: Pa
     return 0
   }
 
-  // ALWAYS use employee salary as source of truth for basic salary
-  // The salary field from employees table is the correct value (₹20,000)
-  // Never use payroll.basic_salary as it might be incorrect (₹19,996)
+  // Calculate salary components
   const employeeSalary = toNumber((payroll as any).salary)
   const payrollBasicSalary = toNumber(payroll.basic_salary)
-  // Always prioritize employee salary - it's the source of truth
-  // Only use payroll basic_salary if employee salary is 0 or not available
   const actualBasicSalary = employeeSalary > 0 ? employeeSalary : payrollBasicSalary
   const allowances = toNumber(payroll.allowances)
   const grossSalary = actualBasicSalary + allowances
-  
-  // ALWAYS calculate TDS as 10% of gross salary (don't trust stored value)
-  // This ensures TDS is always correct: 10% of (Basic Salary + Allowances)
   const tdsAmount = grossSalary * 0.10
-  
-  // Calculate leave deduction - use stored value (it's calculated by backend)
   const leaveDeductionAmount = toNumber(payroll.leave_deduction)
-  
-  // Calculate other deductions correctly
-  // The deductions field in database might contain incorrect data, so we need to extract other deductions
-  // If stored deductions is huge, it's likely wrong - recalculate from scratch
   const storedTotalDeductions = toNumber(payroll.deductions)
   const storedTDS = toNumber(payroll.tds)
   const storedLeaveDeduction = toNumber(payroll.leave_deduction)
   
-  // Calculate other deductions: stored total - (stored TDS + stored leave deduction)
-  // But if stored total is suspiciously large, assume other deductions are 0
   let otherDeductions = 0
   if (storedTotalDeductions > 0 && storedTotalDeductions < grossSalary) {
-    // Only use stored deductions if it's reasonable (less than gross salary)
     otherDeductions = Math.max(0, storedTotalDeductions - storedTDS - storedLeaveDeduction)
-  } else {
-    // If stored deductions is wrong (too large or negative), set other deductions to 0
-    otherDeductions = 0
   }
   
-  // Recalculate total deductions from scratch (TDS + Leave + Other)
   const totalDeductions = tdsAmount + leaveDeductionAmount + otherDeductions
-  
-  // Recalculate net salary to ensure accuracy
   const netSalary = grossSalary - totalDeductions
-  
-  // Debug logging (remove in production)
-  console.log('💰 Payslip Calculation:', {
-    employeeSalary: (payroll as any).salary,
-    payrollBasicSalary: payroll.basic_salary,
-    actualBasicSalary,
-    allowances,
-    grossSalary,
-    tdsAmount: `10% of ${grossSalary} = ${tdsAmount}`,
-    leaveDeductionAmount,
-    otherDeductions,
-    totalDeductions: `${tdsAmount} + ${leaveDeductionAmount} + ${otherDeductions} = ${totalDeductions}`,
-    netSalary: `${grossSalary} - ${totalDeductions} = ${netSalary}`,
-    storedTotalDeductions: `(stored: ${toNumber(payroll.deductions)})`
-  })
+
+  // Get working days and leaves (assuming 22 working days per month, can be adjusted)
+  const workingDays = 22
+  const leavesTaken = Math.floor(leaveDeductionAmount / (grossSalary / workingDays)) || 0
+  const totalLeaves = 2
+  const excessLeaves = Math.max(0, leavesTaken - totalLeaves)
+
+  // Generate amount in words
+  const amountInWords = numberToWords(Math.round(netSalary)) + ' Rupees Only'
+
+  const generatePDF = () => {
+    if (!receiptRef.current) return
+
+    const pdf = new jsPDF('p', 'mm', 'a4')
+    const pageWidth = pdf.internal.pageSize.getWidth()
+    const pageHeight = pdf.internal.pageSize.getHeight()
+    const margin = 20
+    const contentWidth = pageWidth - 2 * margin
+    let yPos = margin
+    
+    // Address in top right
+    pdf.setFontSize(9)
+    pdf.setFont('helvetica', 'normal')
+    pdf.text('Range Hills Road, Pune 411 007', pageWidth - margin, yPos, { align: 'right' })
+    yPos += 8
+
+    // PAYMENT ADVICE title
+    pdf.setFontSize(24)
+    pdf.setFont('helvetica', 'bold')
+    pdf.text('PAYMENT ADVICE', pageWidth / 2, yPos, { align: 'center' })
+    yPos += 12
+
+    // Black bar with payment period
+    pdf.setFillColor(0, 0, 0)
+    pdf.rect(margin, yPos - 5, contentWidth, 8, 'F')
+    pdf.setTextColor(255, 255, 255)
+    pdf.setFontSize(12)
+    pdf.setFont('helvetica', 'bold')
+    pdf.text(`Payment for ${getMonthName(payroll.month)} ${payroll.year}`, pageWidth / 2, yPos, { align: 'center' })
+    pdf.setTextColor(0, 0, 0)
+    yPos += 15
+
+    // Employee Details Box
+    const boxY = yPos
+    pdf.setDrawColor(0, 0, 0)
+    pdf.setLineWidth(0.5)
+    pdf.rect(margin, boxY, contentWidth, 35)
+    
+    // Left column
+    pdf.setFontSize(10)
+    pdf.setFont('helvetica', 'normal')
+    pdf.text('Employee Name:', margin + 5, boxY + 8)
+    pdf.setFont('helvetica', 'bold')
+    pdf.text(employeeName, margin + 50, boxY + 8)
+    
+    pdf.setFont('helvetica', 'normal')
+    pdf.text('Designation:', margin + 5, boxY + 15)
+    pdf.text(payroll.position || payroll.department || 'N/A', margin + 50, boxY + 15)
+    
+    pdf.text('Employee ID:', margin + 5, boxY + 22)
+    pdf.text(payroll.emp_id || `EMP${payroll.employee_id}`, margin + 50, boxY + 22)
+    
+    pdf.text('Agreement Ref:', margin + 5, boxY + 29)
+    pdf.text(`NA${String(payroll.month || 0).padStart(2, '0')}${payroll.year}-${payroll.employee_id}`, margin + 50, boxY + 29)
+    
+    // Right column
+    pdf.text('Working Days:', pageWidth / 2 + 10, boxY + 8)
+    pdf.text(String(workingDays), pageWidth / 2 + 50, boxY + 8)
+    
+    pdf.text('Leaves Taken:', pageWidth / 2 + 10, boxY + 15)
+    pdf.text(`${leavesTaken} / ${totalLeaves}`, pageWidth / 2 + 50, boxY + 15)
+    
+    pdf.text('Excess Leaves:', pageWidth / 2 + 10, boxY + 22)
+    pdf.text(excessLeaves > 0 ? String(excessLeaves) : '-', pageWidth / 2 + 50, boxY + 22)
+    
+    yPos = boxY + 40
+
+    // Earnings and Deductions Tables (side by side)
+    const tableWidth = (contentWidth - 10) / 2
+    const tableY = yPos
+    
+    // Earnings Table
+    pdf.setFillColor(200, 200, 200)
+    pdf.rect(margin, tableY, tableWidth, 8, 'F')
+    pdf.setTextColor(0, 0, 0)
+    pdf.setFontSize(11)
+    pdf.setFont('helvetica', 'bold')
+    pdf.text('EARNINGS', margin + tableWidth / 2, tableY + 5, { align: 'center' })
+    
+    pdf.setFillColor(255, 255, 255)
+    pdf.rect(margin, tableY + 8, tableWidth, 10, 'F')
+    pdf.setFontSize(10)
+    pdf.setFont('helvetica', 'normal')
+    pdf.text('Gross Payment', margin + 5, tableY + 14)
+    pdf.text(formatCurrency(grossSalary), margin + tableWidth - 5, tableY + 14, { align: 'right' })
+    
+    // Deductions Table
+    pdf.setFillColor(200, 200, 200)
+    pdf.rect(margin + tableWidth + 10, tableY, tableWidth, 8, 'F')
+    pdf.setTextColor(0, 0, 0)
+    pdf.setFontSize(11)
+    pdf.setFont('helvetica', 'bold')
+    pdf.text('DEDUCTIONS', margin + tableWidth + 10 + tableWidth / 2, tableY + 5, { align: 'center' })
+    
+    pdf.setFillColor(255, 255, 255)
+    pdf.rect(margin + tableWidth + 10, tableY + 8, tableWidth, 20, 'F')
+    pdf.setFontSize(10)
+    pdf.setFont('helvetica', 'normal')
+    pdf.text('TDS', margin + tableWidth + 15, tableY + 14)
+    pdf.text(formatCurrency(tdsAmount), margin + tableWidth + 10 + tableWidth - 5, tableY + 14, { align: 'right' })
+    
+    pdf.text('Leave Deduction', margin + tableWidth + 15, tableY + 21)
+    pdf.text(formatCurrency(leaveDeductionAmount), margin + tableWidth + 10 + tableWidth - 5, tableY + 21, { align: 'right' })
+    
+    yPos = tableY + 30
+
+    // Summary section
+    pdf.setFillColor(200, 200, 200)
+    pdf.rect(margin, yPos, tableWidth, 8, 'F')
+    pdf.setTextColor(0, 0, 0)
+    pdf.setFontSize(11)
+    pdf.setFont('helvetica', 'bold')
+    pdf.text('GROSS PAYMENT', margin + tableWidth / 2, yPos + 5, { align: 'center' })
+    
+    pdf.setFillColor(255, 255, 255)
+    pdf.rect(margin, yPos + 8, tableWidth, 8, 'F')
+    pdf.setFontSize(10)
+    pdf.setFont('helvetica', 'bold')
+    pdf.text(formatCurrency(grossSalary), margin + tableWidth - 5, yPos + 13, { align: 'right' })
+    
+    pdf.setFillColor(200, 200, 200)
+    pdf.rect(margin + tableWidth + 10, yPos, tableWidth, 8, 'F')
+    pdf.setTextColor(0, 0, 0)
+    pdf.setFontSize(11)
+    pdf.setFont('helvetica', 'bold')
+    pdf.text('TOTAL DEDUCTIONS', margin + tableWidth + 10 + tableWidth / 2, yPos + 5, { align: 'center' })
+    
+    pdf.setFillColor(255, 255, 255)
+    pdf.rect(margin + tableWidth + 10, yPos + 8, tableWidth, 8, 'F')
+    pdf.setFontSize(10)
+    pdf.setFont('helvetica', 'bold')
+    pdf.text(formatCurrency(totalDeductions), margin + tableWidth + 10 + tableWidth - 5, yPos + 13, { align: 'right' })
+    
+    yPos += 20
+
+    // Net Payment bar
+    pdf.setFillColor(0, 0, 0)
+    pdf.rect(margin, yPos, contentWidth, 10, 'F')
+    pdf.setTextColor(255, 255, 255)
+    pdf.setFontSize(12)
+    pdf.setFont('helvetica', 'bold')
+    pdf.text('NET PAYMENT', margin + 10, yPos + 7)
+    pdf.text(formatCurrency(netSalary), pageWidth - margin - 10, yPos + 7, { align: 'right' })
+    pdf.setTextColor(0, 0, 0)
+    yPos += 15
+
+    // Amount in words
+    pdf.setFontSize(10)
+    pdf.setFont('helvetica', 'normal')
+    pdf.text(`Amount in Words: ${amountInWords}`, margin, yPos)
+    yPos += 20
+
+    // Footer
+    pdf.setFontSize(8)
+    pdf.setTextColor(150, 150, 150)
+    pdf.text('This is a computer generated payment advice and does not require a signature.', pageWidth / 2, pageHeight - 15, { align: 'center' })
+
+    // Save PDF
+    const fileName = `Payment_Advice_${employeeName.replace(/\s+/g, '_')}_${getMonthName(payroll.month)}_${payroll.year}.pdf`
+    pdf.save(fileName)
+
+    if (onDownload) {
+      onDownload()
+    }
+  }
 
   return (
     <div className="space-y-4">
-      <div ref={receiptRef} className="bg-white dark:bg-gray-800 p-6 rounded-lg border shadow-lg max-w-2xl mx-auto">
+      <div ref={receiptRef} className="bg-white dark:bg-gray-800 p-8 rounded-lg border shadow-lg max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <FileText className="text-blue-500" size={24} />
-            <h2 className="text-2xl font-bold">Payslip</h2>
+            <h2 className="text-2xl font-bold">Payment Advice</h2>
           </div>
           <Button onClick={generatePDF} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700">
             <Download size={18} />
@@ -309,91 +290,137 @@ export default function PaymentReceipt({ payroll, employeeName, onDownload }: Pa
         </div>
 
         <div className="space-y-6">
-          {/* Company Header */}
-          <div className="text-center border-b pb-4">
-            <h1 className="text-3xl font-bold mb-2">PAYMENT RECEIPT</h1>
-            <p className="text-muted-foreground">HR Management System</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Date: {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Receipt No: REC-{payroll.year}-{String(payroll.month || 0).padStart(2, '0')}-{payroll.employee_id}
-            </p>
+          {/* Header */}
+          <div className="text-right mb-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400">Range Hills Road, Pune 411 007</p>
           </div>
-
-          {/* Employee Information */}
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Employee Information</h3>
-            <div className="space-y-2 text-sm">
-              <p><span className="font-medium">Name:</span> {employeeName}</p>
-              {payroll.emp_id && <p><span className="font-medium">Employee ID:</span> {payroll.emp_id}</p>}
-              {payroll.department && <p><span className="font-medium">Department:</span> {payroll.department}</p>}
-              {payroll.position && <p><span className="font-medium">Position:</span> {payroll.position}</p>}
-              <p><span className="font-medium">Payment Period:</span> {getMonthName(payroll.month)} {payroll.year}</p>
+          
+          <div className="text-center mb-6">
+            <h1 className="text-4xl font-bold mb-4">PAYMENT ADVICE</h1>
+            <div className="bg-black text-white py-3 px-6 rounded">
+              <p className="text-lg font-bold">Payment for {getMonthName(payroll.month)} {payroll.year}</p>
             </div>
           </div>
 
-          {/* Salary Breakdown */}
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Salary Breakdown</h3>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span>Basic Salary:</span>
-                <span className="font-medium">
-                  {formatCurrency(actualBasicSalary)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Allowances:</span>
-                <span className="font-medium text-green-600">{formatCurrency(allowances)}</span>
-              </div>
-              <div className="flex justify-between border-t pt-2 font-semibold">
-                <span>Gross Salary (Total):</span>
-                <span className="text-black dark:text-white">{formatCurrency(grossSalary)}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Deductions */}
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Deductions</h3>
-            <div className="space-y-2">
-              {/* Always show TDS (10% of gross salary) - deducted from basic salary */}
-              <div className="flex justify-between">
-                <span>TDS (Tax Deducted at Source - 10% of Gross Salary):</span>
-                <span className="font-medium text-red-600">{formatCurrency(tdsAmount)}</span>
-              </div>
-              {/* Always show leave deduction - show 0 if no deduction (≤2 leaves) */}
-              <div className="flex justify-between">
-                <span>Leave Deduction {leaveDeductionAmount === 0 ? '(≤2 leaves - No deduction)' : '(More than 2 leaves)'}:</span>
-                <span className="font-medium text-red-600">{formatCurrency(leaveDeductionAmount)}</span>
-              </div>
-              {/* Show other deductions only if they exist */}
-              {otherDeductions > 0 && (
-                <div className="flex justify-between">
-                  <span>Other Deductions:</span>
-                  <span className="font-medium text-red-600">{formatCurrency(otherDeductions)}</span>
+          {/* Employee Details Box */}
+          <div className="border-2 border-gray-900 dark:border-gray-300 p-4 rounded">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <div>
+                  <span className="text-sm font-medium">Employee Name: </span>
+                  <span className="text-sm font-bold">{employeeName}</span>
                 </div>
-              )}
-              <div className="flex justify-between border-t pt-2 font-semibold">
-                <span>Total Deductions:</span>
-                <span className="text-red-600">{formatCurrency(totalDeductions)}</span>
+                <div>
+                  <span className="text-sm font-medium">Designation: </span>
+                  <span className="text-sm">{payroll.position || payroll.department || 'N/A'}</span>
+                </div>
+                <div>
+                  <span className="text-sm font-medium">Employee ID: </span>
+                  <span className="text-sm">{payroll.emp_id || `EMP${payroll.employee_id}`}</span>
+                </div>
+                <div>
+                  <span className="text-sm font-medium">Agreement Ref: </span>
+                  <span className="text-sm">NA{String(payroll.month || 0).padStart(2, '0')}{payroll.year}-{payroll.employee_id}</span>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <span className="text-sm font-medium">Working Days: </span>
+                  <span className="text-sm">{workingDays}</span>
+                </div>
+                <div>
+                  <span className="text-sm font-medium">Leaves Taken: </span>
+                  <span className="text-sm">{leavesTaken} / {totalLeaves}</span>
+                </div>
+                <div>
+                  <span className="text-sm font-medium">Excess Leaves: </span>
+                  <span className="text-sm">{excessLeaves > 0 ? excessLeaves : '-'}</span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Net Salary */}
-          <div className="border-t-2 pt-4">
-            <div className="flex justify-between items-center">
-              <span className="text-xl font-bold">Net Salary:</span>
-              <span className="text-2xl font-bold text-green-600">{formatCurrency(netSalary)}</span>
+          {/* Earnings and Deductions Tables */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Earnings */}
+            <div>
+              <div className="bg-gray-300 dark:bg-gray-600 py-2 px-4 rounded-t">
+                <h3 className="text-sm font-bold text-center">EARNINGS</h3>
+              </div>
+              <div className="border border-t-0 border-gray-900 dark:border-gray-300 p-4 rounded-b">
+                <div className="flex justify-between">
+                  <span className="text-sm">Gross Payment</span>
+                  <span className="text-sm font-medium">{formatCurrency(grossSalary)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Deductions */}
+            <div>
+              <div className="bg-gray-300 dark:bg-gray-600 py-2 px-4 rounded-t">
+                <h3 className="text-sm font-bold text-center">DEDUCTIONS</h3>
+              </div>
+              <div className="border border-t-0 border-gray-900 dark:border-gray-300 p-4 rounded-b space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm">TDS</span>
+                  <span className="text-sm font-medium">{formatCurrency(tdsAmount)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm">Leave Deduction</span>
+                  <span className="text-sm font-medium">{formatCurrency(leaveDeductionAmount)}</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Footer - Removed computer-generated text */}
+          {/* Summary */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <div className="bg-gray-300 dark:bg-gray-600 py-2 px-4 rounded-t">
+                <h3 className="text-sm font-bold text-center">GROSS PAYMENT</h3>
+              </div>
+              <div className="border border-t-0 border-gray-900 dark:border-gray-300 p-4 rounded-b">
+                <div className="flex justify-end">
+                  <span className="text-sm font-bold">{formatCurrency(grossSalary)}</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div className="bg-gray-300 dark:bg-gray-600 py-2 px-4 rounded-t">
+                <h3 className="text-sm font-bold text-center">TOTAL DEDUCTIONS</h3>
+              </div>
+              <div className="border border-t-0 border-gray-900 dark:border-gray-300 p-4 rounded-b">
+                <div className="flex justify-end">
+                  <span className="text-sm font-bold">{formatCurrency(totalDeductions)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Net Payment */}
+          <div className="bg-black text-white py-4 px-6 rounded">
+            <div className="flex justify-between items-center">
+              <span className="text-lg font-bold">NET PAYMENT</span>
+              <span className="text-lg font-bold">{formatCurrency(netSalary)}</span>
+            </div>
+          </div>
+
+          {/* Amount in Words */}
+          <div className="border-t pt-4">
+            <p className="text-sm">
+              <span className="font-medium">Amount in Words: </span>
+              {amountInWords}
+            </p>
+          </div>
+
+          {/* Footer */}
+          <div className="border-t pt-4">
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+              This is a computer generated payment advice and does not require a signature.
+            </p>
+          </div>
         </div>
       </div>
     </div>
   )
 }
-

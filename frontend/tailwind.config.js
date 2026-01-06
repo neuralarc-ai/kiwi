@@ -37,6 +37,15 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        palette: {
+          'red-orange': 'hsl(var(--palette-red-orange))',
+          'yellow': 'hsl(var(--palette-yellow))',
+          'dark-green': 'hsl(var(--palette-dark-green))',
+          'light-blue': 'hsl(var(--palette-light-blue))',
+          'light-purple': 'hsl(var(--palette-light-purple))',
+          'pink-cream': 'hsl(var(--palette-pink-cream))',
+          'dark-gray': 'hsl(var(--palette-dark-gray))',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',

@@ -46,27 +46,71 @@ export const login = async (req, res) => {
 
 export const register = async (req, res) => {
   try {
-    const { email, password, role, first_name, last_name, phone, department, position, address } = req.body;
+    console.log('📥 Register endpoint called');
+    console.log('📥 Request body:', JSON.stringify(req.body));
+    console.log('📥 Request headers:', JSON.stringify(req.headers));
+    console.log('📥 Content-Type:', req.headers['content-type']);
+    
+    const { email, password, role } = req.body;
+    
+    console.log('📥 Extracted data:', { 
+      email: email || 'MISSING', 
+      password: password ? '***' : 'MISSING',
+      role: role || 'not provided',
+      emailType: typeof email,
+      passwordType: typeof password
+    });
+    
+    // Check if this is an admin request (has token)
+    const currentUserRole = req.user?.role;
+    const isAdminRequest = currentUserRole === 'admin' || currentUserRole === 'hr_executive';
+    
+    // For public registration (no token), default role is 'hr_executive'
+    // For admin requests, use the provided role or default to 'hr_executive'
+    let finalRole = 'hr_executive';
+    if (isAdminRequest && role) {
+      finalRole = role.toLowerCase().trim();
+    }
+    
+    const normalizedRole = finalRole.toLowerCase().trim();
 
-    if (!email || !password || !role) {
-      return res.status(400).json({ message: 'Email, password, and role are required' });
+    console.log('📝 Register user request received:', { 
+      email, 
+      role: normalizedRole,
+      isPublicRegistration: !req.user,
+      currentUserRole,
+      hasPassword: !!password
+    });
+
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    // Normalize role to lowercase
-    const normalizedRole = role?.toLowerCase().trim();
+    // Validate role if admin is creating
+    if (isAdminRequest) {
+      if (!['admin', 'hr_executive', 'employee'].includes(normalizedRole)) {
+        console.error('Invalid role in register endpoint:', { role: normalizedRole });
+        return res.status(400).json({ 
+          message: `Invalid role: "${normalizedRole}". Allowed roles: admin, hr_executive, employee` 
+        });
+      }
 
-    if (!['admin', 'hr_executive', 'employee'].includes(normalizedRole)) {
-      console.error('Invalid role in register endpoint:', { role, normalizedRole });
-      return res.status(400).json({ 
-        message: `Invalid role: "${role}". Allowed roles: admin, hr_executive, employee` 
-      });
+      // HR executives cannot create admin accounts - only admins can
+      if (currentUserRole === 'hr_executive' && normalizedRole === 'admin') {
+        return res.status(403).json({ 
+          message: 'HR executives cannot create admin accounts. Only admins can create admin accounts.' 
+        });
+      }
     }
 
     // Validate password strength
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.isValid) {
+      const errorMessage = passwordValidation.errors.length > 0 
+        ? `Password validation failed: ${passwordValidation.errors.join(', ')}`
+        : 'Password validation failed. Password must be at least 8 characters with uppercase, lowercase, number, and special character.';
       return res.status(400).json({ 
-        message: 'Password validation failed',
+        message: errorMessage,
         errors: passwordValidation.errors
       });
     }
@@ -82,21 +126,71 @@ export const register = async (req, res) => {
     // Create user
     let result;
     try {
+      console.log(`💾 Inserting user into database: ${email} with role: ${normalizedRole}`);
+      console.log(`💾 Using hashed password (length: ${hashedPassword.length})`);
+      
       result = await pool.query(
-        'INSERT INTO users (email, password, role) VALUES ($1, $2, $3) RETURNING id, email, role',
+        'INSERT INTO users (email, password, role) VALUES ($1, $2, $3) RETURNING id, email, role, created_at',
         [email, hashedPassword, normalizedRole]
       );
+      
+      if (!result.rows || result.rows.length === 0) {
+        throw new Error('User insertion returned no rows');
+      }
+      
+      console.log('✅ User inserted successfully:', result.rows[0]);
+      
+      // Verify the user was actually inserted by querying it back
+      const verifyResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+      if (verifyResult.rows.length === 0) {
+        throw new Error('User was not found in database after insertion');
+      }
+      console.log('✅ Verified user exists in database:', verifyResult.rows[0].email);
+      
     } catch (dbError) {
-      console.error('Database error creating user:', dbError);
+      console.error('❌ Database error creating user:', {
+        code: dbError.code,
+        message: dbError.message,
+        detail: dbError.detail,
+        constraint: dbError.constraint,
+        stack: dbError.stack
+      });
+      
       if (dbError.code === '23514') {
         return res.status(400).json({ 
-          message: `Invalid role: "${normalizedRole}". Database constraint violation. Please contact administrator.` 
+          message: `Invalid role: "${normalizedRole}". Database constraint violation. The role must be one of: admin, hr_executive, employee. Please contact administrator.` 
         });
       }
-      throw dbError;
+      if (dbError.code === '23505') {
+        return res.status(400).json({ 
+          message: 'Email already exists. Please use a different email.' 
+        });
+      }
+      
+      // Return the actual database error message for debugging
+      return res.status(500).json({ 
+        message: `Database error: ${dbError.message || 'Failed to create user account'}`,
+        error: process.env.NODE_ENV === 'development' ? dbError.message : undefined
+      });
     }
 
     const user = result.rows[0];
+    console.log(`✅ User account created successfully: ${user.email} (ID: ${user.id}, Role: ${user.role})`);
+    
+    // Double-check: Query the database to confirm user exists
+    try {
+      const verifyQuery = await pool.query('SELECT id, email, role, created_at FROM users WHERE id = $1', [user.id]);
+      if (verifyQuery.rows.length === 0) {
+        console.error('❌ CRITICAL: User was not found in database after insertion!');
+        return res.status(500).json({ 
+          message: 'Account creation failed: User was not saved to database. Please try again.' 
+        });
+      }
+      console.log('✅ Verified user exists in database:', verifyQuery.rows[0]);
+    } catch (verifyError) {
+      console.error('❌ Error verifying user in database:', verifyError);
+      // Continue anyway as the INSERT was successful
+    }
 
     // If employee role, create employee record
     let employee = null;
@@ -124,14 +218,31 @@ export const register = async (req, res) => {
       }
     }
 
-    res.status(201).json({
-      message: 'User created successfully',
-      user,
-      employee,
-    });
+    console.log(`✅ Account created successfully for: ${user.email}`);
+    
+    const responseData = {
+      message: 'Account created successfully',
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      },
+    };
+    
+    if (employee) {
+      responseData.employee = employee;
+    }
+    
+    res.status(201).json(responseData);
   } catch (error) {
-    console.error('Register error:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('❌ Register error:', error);
+    const errorMessage = error?.message || 'Server error';
+    console.error('❌ Error details:', errorMessage);
+    console.error('❌ Error stack:', error?.stack);
+    res.status(500).json({ 
+      message: errorMessage || 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
@@ -349,6 +460,20 @@ export const registerFirstUser = async (req, res) => {
   } catch (error) {
     console.error('Register first user error:', error);
     res.status(500).json({ message: error.message || 'Server error' });
+  }
+};
+
+// Get all users (admin only)
+export const getUsers = async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, email, role, created_at FROM users ORDER BY created_at DESC'
+    );
+    
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get users error:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 };
 

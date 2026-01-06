@@ -65,6 +65,7 @@ export default function SettingsPage() {
     fetchPayrollSettings()
   }, [token])
 
+
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -160,6 +161,7 @@ export default function SettingsPage() {
     }
   }
 
+
   return (
     <>
       <ToastContainer toasts={toast.toasts} onClose={toast.removeToast} />
@@ -227,8 +229,8 @@ export default function SettingsPage() {
         <Card variant="glass">
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-50 dark:bg-green-500/20">
-                <Shield className="text-green-600 dark:text-green-400" size={24} />
+              <div className="p-2 rounded-lg bg-green-50 dark:bg-[#27584F]/20">
+                <Shield className="text-green-600 dark:text-[#27584F]" size={24} />
               </div>
               <div className="space-y-1">
                 <CardTitle>Security</CardTitle>
@@ -377,8 +379,8 @@ export default function SettingsPage() {
           <Card variant="glass">
             <CardHeader>
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-50 dark:bg-green-500/20">
-                  <SettingsIcon className="h-6 w-6 text-green-600 dark:text-green-400" />
+                <div className="p-2 rounded-lg bg-green-50 dark:bg-[#27584F]/20">
+                  <SettingsIcon className="h-6 w-6 text-green-600 dark:text-[#27584F]" />
                 </div>
                 <div className="space-y-1">
                   <CardTitle>Annual Leave Allocations</CardTitle>
@@ -481,7 +483,7 @@ export default function SettingsPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0.6 }}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card variant="glass" className="bg-blue-50/50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20">

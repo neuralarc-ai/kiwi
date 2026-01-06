@@ -9,11 +9,16 @@ import {
   TrendingUp,
   Calculator,
   Menu,
-  X,
-  Building2
+  ChevronLeft,
+  Building2,
+  Sun,
+  Moon,
+  LogOut
 } from 'lucide-react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useSidebar } from '@/contexts/SidebarContext'
+import { useAuth } from '@/contexts/AuthContext'
+import { useTheme } from '@/contexts/ThemeContext'
 import { cn } from '@/lib/utils'
 import RoyalBrandTitle from '@/components/home/RoyalBrandTitle'
 
@@ -31,6 +36,14 @@ const menuItems = [
 
 export default function Sidebar() {
   const { isCollapsed, isMobile, isMobileOpen, toggleSidebar, closeMobileSidebar } = useSidebar()
+  const { logout } = useAuth()
+  const { theme, toggleTheme } = useTheme()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login')
+  }
 
   return (
     <>
@@ -53,10 +66,10 @@ export default function Sidebar() {
         }}
         transition={{ duration: 0.3, ease: 'easeInOut' }}
         className={cn(
-          "fixed left-0 top-0 h-screen glass-strong z-50",
+          "fixed left-0 top-0 h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 z-50 shadow-xl",
           isMobile 
-            ? "w-[280px] sm:w-64"
-            : (isCollapsed ? "w-20" : "w-64"),
+            ? "w-[260px] sm:w-64"
+            : (isCollapsed ? "w-16" : "w-56"),
           isMobile && !isMobileOpen && "pointer-events-none"
         )}
         style={{
@@ -64,7 +77,8 @@ export default function Sidebar() {
         }}
       >
       <div className="flex flex-col h-full p-3 sm:p-4 overflow-hidden">
-        <div className="flex items-center justify-between mb-6 sm:mb-8 flex-shrink-0">
+        {/* Logo and Close Button */}
+        <div className="flex items-center justify-between mb-6 flex-shrink-0">
           {(!isCollapsed || isMobile) && (
             <RoyalBrandTitle 
               size="sm" 
@@ -75,14 +89,28 @@ export default function Sidebar() {
           )}
           <button
             onClick={toggleSidebar}
-            className="p-2 rounded-lg hover:bg-white/10 active:bg-white/20 transition-colors flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="p-2 rounded-lg flex-shrink-0 min-w-[40px] min-h-[40px] flex items-center justify-center"
             aria-label={isMobileOpen ? "Close menu" : "Open menu"}
+            style={{ color: 'hsl(var(--palette-dark-green))' }}
           >
-            {isMobile ? (isMobileOpen ? <X size={20} /> : <Menu size={20} />) : (isCollapsed ? <Menu size={20} /> : <X size={20} />)}
+            {isMobile ? (
+              isMobileOpen ? <ChevronLeft size={20} /> : <Menu size={20} />
+            ) : (
+              isCollapsed ? <Menu size={20} /> : <ChevronLeft size={20} />
+            )}
           </button>
         </div>
 
-        <nav className="flex-1 space-y-1 sm:space-y-2 overflow-y-auto overflow-x-hidden min-h-0">
+        {/* Admin Tools Heading */}
+        {(!isCollapsed || isMobile) && (
+          <div className="mb-4 px-3">
+            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Admin tools
+            </h3>
+          </div>
+        )}
+
+        <nav className="flex-1 space-y-1 overflow-y-auto overflow-x-hidden min-h-0">
           {menuItems.map((item, index) => (
             <NavLink
               key={item.path}
@@ -93,29 +121,23 @@ export default function Sidebar() {
                   setTimeout(() => closeMobileSidebar(), 100)
                 }
               }}
-              style={({ isActive }) => isActive ? { backgroundColor: 'oklch(94% .01 60)', color: 'black' } : undefined}
+              style={({ isActive }) => {
+                if (!isActive) return undefined
+                // Use dark color for Dashboard, light color for others
+                if (item.path === '/dashboard') {
+                  return { backgroundColor: 'hsl(var(--palette-light-purple))' }
+                }
+                return { backgroundColor: 'hsl(var(--palette-light-purple) / 0.3)' }
+              }}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg transition-all duration-300 group relative overflow-visible min-h-[44px] w-full",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative overflow-visible min-h-[44px] w-full",
+                  isCollapsed && !isMobile && "justify-center px-2",
                   isActive
-                    ? "text-black border"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "text-gray-900 dark:text-white font-medium"
+                    : "text-gray-600 dark:text-gray-400"
                 )
               }
-              onMouseEnter={(e) => {
-                const navLink = e.currentTarget
-                const isActive = navLink.getAttribute('aria-current') === 'page'
-                if (!isActive) {
-                  navLink.style.backgroundColor = 'oklch(94% .01 60)'
-                }
-              }}
-              onMouseLeave={(e) => {
-                const navLink = e.currentTarget
-                const isActive = navLink.getAttribute('aria-current') === 'page'
-                if (!isActive) {
-                  navLink.style.backgroundColor = ''
-                }
-              }}
             >
               {({ isActive }) => (
                 <>
@@ -123,19 +145,30 @@ export default function Sidebar() {
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ delay: index * 0.1 }}
-                    className="flex-shrink-0 relative z-10"
+                    className={cn(
+                      "flex-shrink-0 relative z-10",
+                      isCollapsed && !isMobile && "flex items-center justify-center w-full"
+                    )}
                   >
                     <item.icon 
-                      size={isMobile ? 18 : 20} 
-                      className="transition-transform group-hover:scale-110"
-                      style={isActive ? { color: 'black' } : undefined}
+                      size={
+                        isMobile ? 22 
+                        : isCollapsed ? 22 
+                        : 24
+                      } 
+                      className={cn(
+                        "transition-transform",
+                        isActive 
+                          ? "text-gray-900 dark:text-white" 
+                          : "text-gray-600 dark:text-gray-400"
+                      )} 
                     />
                   </motion.div>
                   {(!isCollapsed || isMobile) && (
                     <motion.span
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      className="font-medium text-sm sm:text-base truncate relative z-10"
+                      className="text-sm truncate relative z-10"
                     >
                       {item.label}
                     </motion.span>
@@ -151,7 +184,11 @@ export default function Sidebar() {
                     <motion.div
                       layoutId="activeTab"
                       className="absolute inset-0 rounded-lg z-0"
-                      style={{ backgroundColor: 'oklch(94% .01 60)' }}
+                      style={{ 
+                        backgroundColor: item.path === '/dashboard' 
+                          ? 'hsl(var(--palette-light-purple))' 
+                          : 'hsl(var(--palette-light-purple) / 0.3)' 
+                      }}
                       transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                     />
                   )}
@@ -160,6 +197,49 @@ export default function Sidebar() {
             </NavLink>
           ))}
         </nav>
+
+        {/* Bottom Section - Theme Toggle and Logout */}
+        <div className="mt-auto pt-4 border-t border-gray-200 dark:border-gray-800 space-y-2 flex-shrink-0">
+          {/* Theme Toggle Button */}
+          <button
+            onClick={toggleTheme}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-gray-600 dark:text-gray-400",
+              isCollapsed && !isMobile && "justify-center px-2",
+              !isCollapsed && !isMobile && "justify-start"
+            )}
+            aria-label="Toggle theme"
+          >
+            {theme === 'light' ? (
+              <Sun size={isMobile ? 22 : isCollapsed ? 22 : 24} />
+            ) : (
+              <Moon size={isMobile ? 22 : isCollapsed ? 22 : 24} />
+            )}
+            {(!isCollapsed || isMobile) && (
+              <span className="text-sm font-medium">
+                {theme === 'light' ? 'Light' : 'Dark'}
+              </span>
+            )}
+          </button>
+
+          {/* Logout Button */}
+          <button
+            onClick={handleLogout}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300",
+              isCollapsed && !isMobile && "justify-center px-2",
+              !isCollapsed && !isMobile && "justify-start"
+            )}
+          >
+            <LogOut 
+              size={isMobile ? 22 : isCollapsed ? 22 : 24} 
+              style={{ color: 'hsl(var(--palette-red-orange))' }}
+            />
+            {(!isCollapsed || isMobile) && (
+              <span className="text-sm font-medium">Logout</span>
+            )}
+          </button>
+        </div>
       </div>
     </motion.aside>
     </>

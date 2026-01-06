@@ -36,7 +36,7 @@ export default function Footer() {
           {/* Brand */}
           <div>
             <Link to="/home" className="flex items-center space-x-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'hsl(var(--primary))' }}>
                 <span className="text-white font-bold text-lg">H</span>
               </div>
               <span className="text-xl font-bold text-gray-900">KIWI</span>
@@ -54,7 +54,10 @@ export default function Footer() {
                 <li key={link.label}>
                   <a
                     href={link.href}
-                    className="text-sm text-gray-600 hover:text-blue-600 transition-colors"
+                    className="text-sm text-gray-600 transition-colors"
+                    style={{ '--hover-color': 'hsl(var(--primary))' } as React.CSSProperties}
+                    onMouseEnter={(e) => e.currentTarget.style.color = 'hsl(var(--primary))'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = ''}
                   >
                     {link.label}
                   </a>
@@ -71,7 +74,10 @@ export default function Footer() {
                 <li key={link.label}>
                   <a
                     href={link.href}
-                    className="text-sm text-gray-600 hover:text-blue-600 transition-colors"
+                    className="text-sm text-gray-600 transition-colors"
+                    style={{ '--hover-color': 'hsl(var(--primary))' } as React.CSSProperties}
+                    onMouseEnter={(e) => e.currentTarget.style.color = 'hsl(var(--primary))'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = ''}
                   >
                     {link.label}
                   </a>
@@ -88,7 +94,10 @@ export default function Footer() {
                 <li key={link.label}>
                   <a
                     href={link.href}
-                    className="text-sm text-gray-600 hover:text-blue-600 transition-colors"
+                    className="text-sm text-gray-600 transition-colors"
+                    style={{ '--hover-color': 'hsl(var(--primary))' } as React.CSSProperties}
+                    onMouseEnter={(e) => e.currentTarget.style.color = 'hsl(var(--primary))'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = ''}
                   >
                     {link.label}
                   </a>
@@ -108,7 +117,15 @@ export default function Footer() {
               <a
                 key={social.label}
                 href={social.href}
-                className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:text-blue-600 hover:border-blue-600 transition-colors"
+                className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-600 transition-colors"
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = 'hsl(var(--primary))';
+                  e.currentTarget.style.borderColor = 'hsl(var(--primary))';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = '';
+                  e.currentTarget.style.borderColor = '';
+                }}
                 aria-label={social.label}
               >
                 <social.icon size={18} />

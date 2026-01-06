@@ -121,7 +121,7 @@ export default function EmployeeProfile() {
   const getPaymentStatusColor = (status: string | undefined) => {
     switch (status?.toLowerCase()) {
       case 'paid':
-        return 'bg-green-500/20 text-green-400 border-green-500/30'
+        return 'bg-green-500/20 text-green-400 dark:bg-[#27584F]/20 dark:text-[#27584F] dark:border-[#27584F]/30 border-green-500/30'
       case 'unpaid':
         return 'bg-red-500/20 text-red-400 border-red-500/30'
       case 'pending':
@@ -217,7 +217,13 @@ export default function EmployeeProfile() {
                     <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-2 break-words">
                       {employee.first_name} {employee.last_name}
                     </h2>
-                    <p className="text-muted-foreground text-sm sm:text-base">{employee.employee_id}</p>
+                    <p className="text-muted-foreground text-sm sm:text-base mb-2">{employee.employee_id}</p>
+                    {employee.employee_type && (
+                      <Badge className="bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30 text-xs inline-flex items-center gap-1">
+                        <Briefcase size={12} />
+                        {employee.employee_type}
+                      </Badge>
+                    )}
                   </div>
                   <Badge 
                     variant={employee.status === 'active' ? 'success' : 'destructive'}
@@ -293,8 +299,8 @@ export default function EmployeeProfile() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
-              <div className="text-center p-3 sm:p-4 rounded-lg bg-green-500/20 border border-green-500/30">
-                <p className="text-lg sm:text-xl font-bold text-green-400">{attendanceStats.present}</p>
+              <div className="text-center p-3 sm:p-4 rounded-lg bg-green-500/20 dark:bg-[#27584F]/20 border border-green-500/30 dark:border-[#27584F]/30">
+                <p className="text-lg sm:text-xl font-bold text-green-400 dark:text-[#27584F]">{attendanceStats.present}</p>
                 <p className="text-sm text-muted-foreground mt-1">Present</p>
               </div>
               <div className="text-center p-3 sm:p-4 rounded-lg bg-red-500/20 border border-red-500/30">

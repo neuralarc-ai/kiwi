@@ -21,13 +21,13 @@ router.get('/test', (req, res) => {
 router.get('/', getAccountingData)
 
 // Initialize accounting entries for a month/year
-router.post('/initialize', authorize('admin', 'hr'), initializeAccountingEntries)
+router.post('/initialize', authorize('admin', 'hr_executive'), initializeAccountingEntries)
 
 // Create a new accounting entry
-router.post('/', authorize('admin', 'hr'), createAccountingEntry)
+router.post('/', authorize('admin', 'hr_executive'), createAccountingEntry)
 
 // Update accounting amount
-router.put('/:id', authorize('admin', 'hr'), updateAccountingAmount)
+router.put('/:id', authorize('admin', 'hr_executive'), updateAccountingAmount)
 
 // Sync salary from payroll
 router.get('/sync-salary', authenticate, syncSalaryFromPayroll)

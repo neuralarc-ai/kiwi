@@ -87,11 +87,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const register = async (data: { email: string; password: string; role: string; first_name?: string; last_name?: string; phone?: string; department?: string; position?: string; address?: string }): Promise<boolean> => {
+  const register = async (data: { email: string; password: string; role?: string; first_name?: string; last_name?: string; phone?: string; department?: string; position?: string; address?: string }): Promise<boolean> => {
     try {
       setLoading(true)
+      // Public registration - no role needed, defaults to 'hr_executive'
       const response = await apiService.register(data)
       
+      // Note: Public registration doesn't return a token, user needs to login
+      // Only register-first endpoint returns token for auto-login
       if (response.token && response.user) {
         setToken(response.token)
         setUser(response.user)
@@ -100,10 +103,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('user', JSON.stringify(response.user))
         return true
       }
-      return false
+      // Account created successfully, but no auto-login
+      return true
     } catch (error: any) {
       console.error('Register error:', error)
-      return false
+      throw error // Re-throw so RegisterPage can handle it
     } finally {
       setLoading(false)
     }

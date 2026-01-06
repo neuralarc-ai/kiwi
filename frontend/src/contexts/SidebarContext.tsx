@@ -18,15 +18,24 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024) // lg breakpoint
-      if (window.innerWidth >= 1024) {
+      const isMobileView = window.innerWidth < 1024 // lg breakpoint
+      setIsMobile(isMobileView)
+      if (!isMobileView) {
         setIsMobileOpen(false) // Close mobile sidebar on desktop
       }
     }
 
+    // Check immediately on mount
     checkMobile()
+    
+    // Also check after a short delay to ensure proper detection
+    const timeoutId = setTimeout(checkMobile, 100)
+    
     window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
+    return () => {
+      window.removeEventListener('resize', checkMobile)
+      clearTimeout(timeoutId)
+    }
   }, [])
 
   const toggleSidebar = () => {

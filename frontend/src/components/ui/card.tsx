@@ -12,7 +12,7 @@ const Card = React.forwardRef<
         "rounded-xl transition-all duration-300",
         {
           "bg-card text-card-foreground shadow-lg": variant === "default",
-          "glass shadow-xl hover:shadow-2xl hover:scale-[1.02]": variant === "glass",
+          "glass shadow-xl": variant === "glass",
           "neumorphism": variant === "neumorphism",
         },
         className

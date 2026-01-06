@@ -1,30 +1,28 @@
-import { useState, useEffect, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Search, UserPlus, MoreVertical, Edit, Trash2, Mail, Phone, MapPin, Calendar } from 'lucide-react'
+import { Search, UserPlus, Edit, Trash2, ChevronDown } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { apiService, Employee } from '@/services/api'
 import { useAuth } from '@/contexts/AuthContext'
 import AddEmployeeModal from '@/components/AddEmployeeModal'
 import { useToast, ToastContainer } from '@/components/ui/toast'
 
-// Departments will be dynamically generated from actual employees
-
 export default function EmployeeDirectory() {
   const { token } = useAuth()
-  const toast = useToast()
   const navigate = useNavigate()
+  const toast = useToast()
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedDepartment, setSelectedDepartment] = useState('All')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null)
+  const [selectedEmployees, setSelectedEmployees] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     fetchEmployees()
@@ -45,10 +43,14 @@ export default function EmployeeDirectory() {
   }
 
   const handleDelete = async (id: number) => {
-    if (!token || !confirm('Are you sure you want to delete this employee?')) return
+    if (!token) return
+
+    const employee = employees.find(emp => emp.id === id)
+    const employeeName = employee ? `${employee.first_name} ${employee.last_name}` : 'Employee'
 
     try {
       await apiService.deleteEmployee(id, token)
+      toast.success(`${employeeName} deleted successfully`)
       fetchEmployees()
     } catch (error: any) {
       toast.error(error?.message || 'Failed to delete employee')
@@ -90,16 +92,14 @@ export default function EmployeeDirectory() {
         emp.first_name?.toLowerCase().includes(query) ||
         emp.last_name?.toLowerCase().includes(query) ||
         emp.email?.toLowerCase().includes(query) ||
-        emp.employee_id?.toLowerCase().includes(query) ||
-        emp.department?.toLowerCase().includes(query) ||
-        emp.position?.toLowerCase().includes(query)
+        emp.employee_id?.toLowerCase().includes(query)
       )
     }
 
     return filtered
   }, [employees, selectedDepartment, searchQuery])
 
-  // Get unique departments from actual employees
+  // Get unique departments
   const availableDepartments = useMemo(() => {
     const deptSet = new Set<string>()
     employees.forEach(emp => {
@@ -110,249 +110,228 @@ export default function EmployeeDirectory() {
     return ['All', ...Array.from(deptSet).sort()]
   }, [employees])
 
-  // Group employees by department
-  const groupedEmployees = useMemo(() => {
-    const grouped: { [key: string]: Employee[] } = {}
-    
-    filteredEmployees.forEach(emp => {
-      const dept = emp.department || 'Unassigned'
-      if (!grouped[dept]) {
-        grouped[dept] = []
-      }
-      grouped[dept].push(emp)
-    })
-
-    return grouped
-  }, [filteredEmployees])
-
-  const getStatusColor = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-green-500/20 text-green-400 border-green-500/30'
+        return <Badge className="bg-green-500/20 text-green-600 dark:bg-[#27584F]/20 dark:text-[#27584F] dark:border-[#27584F]/30 border-green-500/30 text-xs">Active</Badge>
       case 'on_leave':
-        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+        return <Badge className="bg-yellow-500/20 text-yellow-600 border-yellow-500/30 text-xs">On Leave</Badge>
       case 'inactive':
-        return 'bg-red-500/20 text-red-400 border-red-500/30'
+        return <Badge className="bg-red-500/20 text-red-600 border-red-500/30 text-xs">Inactive</Badge>
       default:
-        return 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+        return <Badge className="bg-gray-500/20 text-gray-600 border-gray-500/30 text-xs">Active</Badge>
     }
   }
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'N/A'
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
+  }
+
+  // Select All functionality
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allIds = new Set(filteredEmployees.map(emp => emp.id))
+      setSelectedEmployees(allIds)
+    } else {
+      setSelectedEmployees(new Set())
+    }
+  }
+
+  const handleSelectEmployee = (employeeId: number, checked: boolean) => {
+    const newSelected = new Set(selectedEmployees)
+    if (checked) {
+      newSelected.add(employeeId)
+    } else {
+      newSelected.delete(employeeId)
+    }
+    setSelectedEmployees(newSelected)
+  }
+
+  const isAllSelected = filteredEmployees.length > 0 && filteredEmployees.every(emp => selectedEmployees.has(emp.id))
+  const isIndeterminate = selectedEmployees.size > 0 && !isAllSelected
+  const selectAllCheckboxRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (selectAllCheckboxRef.current) {
+      selectAllCheckboxRef.current.indeterminate = isIndeterminate
+    }
+  }, [isIndeterminate])
 
   return (
     <>
       <ToastContainer toasts={toast.toasts} onClose={toast.removeToast} />
     <div className="space-y-6 overflow-x-hidden max-w-full">
+        {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 overflow-x-hidden max-w-full"
+          className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       >
-        <div className="flex-1 min-w-0 overflow-x-hidden">
-          <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-2 gradient-text truncate">Employee Directory</h1>
-          <p className="text-sm sm:text-base text-muted-foreground truncate">
-            Manage and view all employees ({filteredEmployees.length} {filteredEmployees.length === 1 ? 'employee' : 'employees'})
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold mb-1">Employee List</h1>
+            <p className="text-sm text-muted-foreground">
+              {filteredEmployees.length} {filteredEmployees.length === 1 ? 'employee' : 'employees'}
           </p>
         </div>
-        <Button onClick={handleAddNew} className="w-full sm:w-auto flex-shrink-0 whitespace-nowrap">
-          <UserPlus className="mr-2" size={18} />
+          <Button onClick={handleAddNew} size="sm" className="w-full sm:w-auto">
+            <UserPlus className="mr-2" size={16} />
           Add Employee
         </Button>
       </motion.div>
 
-      {/* Search and Filters */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="flex flex-col sm:flex-row gap-3 sm:gap-4 overflow-x-hidden max-w-full"
-      >
-        <div className="flex-1 relative min-w-0">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+        {/* Filter Bar - Unity Style */}
+        <Card variant="glass" className="p-4">
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+            {/* Left side - Dropdowns */}
+            <div className="flex flex-wrap gap-3 flex-1">
+              {/* Department Dropdown */}
+              <div className="relative">
+                <select
+                  value={selectedDepartment}
+                  onChange={(e) => setSelectedDepartment(e.target.value)}
+                  className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 pr-8 text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20"
+                >
+                  {availableDepartments.map(dept => (
+                    <option key={dept} value={dept}>{dept}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" size={16} />
+              </div>
+            </div>
+
+            {/* Right side - Search */}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              {/* Small Search Bar */}
+              <div className="relative flex-1 sm:flex-initial sm:w-[200px]">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" size={14} />
           <Input
             variant="glass"
-            placeholder="Search by name, email, employee ID, department..."
-            className="pl-9 w-full text-sm"
+                  placeholder="Search"
+                  className="pl-8 pr-3 py-1.5 h-9 text-sm"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-      </motion.div>
+            </div>
+          </div>
+        </Card>
 
-      {/* Department Filter Tags - Only show departments that have employees */}
-      {availableDepartments.length > 1 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="flex gap-2 flex-wrap"
-        >
-          {availableDepartments.map((dept) => (
-            <Badge
-              key={dept}
-              variant={selectedDepartment === dept ? 'default' : 'secondary'}
-              className="cursor-pointer hover:scale-105 transition-transform"
-              onClick={() => setSelectedDepartment(dept)}
-            >
-              {dept} {dept !== 'All' && `(${employees.filter(e => e.department === dept).length})`}
-            </Badge>
-          ))}
-        </motion.div>
-      )}
-
-      {/* Employee List - Grouped by Department */}
+        {/* Table */}
+        <Card variant="glass" className="overflow-hidden">
+          <CardContent className="p-0">
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Card key={i} variant="glass">
-              <CardContent className="p-6">
-                <Skeleton className="h-20 w-full mb-4" />
-                <Skeleton className="h-4 w-3/4 mb-2" />
-                <Skeleton className="h-4 w-1/2" />
-              </CardContent>
-            </Card>
+              <div className="p-6 space-y-4">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <Skeleton key={i} className="h-16 w-full" />
           ))}
         </div>
       ) : filteredEmployees.length === 0 ? (
-        <Card variant="glass">
-          <CardContent className="p-12 text-center">
-            <p className="text-muted-foreground text-lg">
+              <div className="p-12 text-center">
+                <p className="text-muted-foreground">
               {searchQuery || selectedDepartment !== 'All'
                 ? 'No employees found matching your filters'
                 : 'No employees found. Add your first employee to get started.'}
             </p>
-          </CardContent>
-        </Card>
+              </div>
       ) : (
-        Object.entries(groupedEmployees).map(([department, deptEmployees]) => (
-          <motion.div
-            key={department}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-4"
-          >
-            <h2 className="text-base sm:text-lg font-semibold text-foreground">
-              {department} ({deptEmployees.length})
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {deptEmployees.map((employee, index) => (
-                <motion.div
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        <input 
+                          ref={selectAllCheckboxRef}
+                          type="checkbox" 
+                          className="rounded border-gray-300 cursor-pointer" 
+                          checked={isAllSelected}
+                          onChange={(e) => handleSelectAll(e.target.checked)}
+                        />
+                      </th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Name
+                      </th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Department
+                      </th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Date Joined
+                      </th>
+                      <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {filteredEmployees.map((employee) => (
+                      <motion.tr
                   key={employee.id}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <Card variant="glass" className="hover:bg-white/5 transition-colors h-full">
-                    <CardContent className="p-5">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          {employee.profile_photo ? (
-                            <img
-                              src={employee.profile_photo}
-                              alt={`${employee.first_name} ${employee.last_name}`}
-                              className="w-14 h-14 rounded-full object-cover border-2 border-blue-500/30 shadow-lg flex-shrink-0"
-                              onError={(e) => {
-                                // Fallback to initials if image fails to load
-                                const target = e.target as HTMLImageElement
-                                target.style.display = 'none'
-                                const fallback = target.nextElementSibling as HTMLElement
-                                if (fallback) fallback.style.display = 'flex'
-                              }}
-                            />
-                          ) : null}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className=""
+                      >
+                        <td className="py-4 px-4">
+                          <input 
+                            type="checkbox" 
+                            className="rounded border-gray-300 cursor-pointer" 
+                            checked={selectedEmployees.has(employee.id)}
+                            onChange={(e) => handleSelectEmployee(employee.id, e.target.checked)}
+                          />
+                        </td>
+                        <td className="py-4 px-4">
                           <div 
-                            className={`w-14 h-14 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-white font-bold text-base flex-shrink-0 ${
-                              employee.profile_photo ? 'hidden' : ''
-                            }`}
-                          >
-                            {employee.first_name?.[0]}{employee.last_name?.[0]}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <h3 
-                              className="font-semibold text-base cursor-pointer hover:text-black dark:hover:text-white transition-colors truncate"
+                            className="cursor-pointer hover:text-primary transition-colors"
                               onClick={() => navigate(`/dashboard/employee/${employee.id}`)}
                             >
+                            <div className="font-medium text-sm">
                               {employee.first_name} {employee.last_name}
-                            </h3>
-                            <p className="text-sm text-muted-foreground truncate">{employee.employee_id}</p>
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-0.5">
+                              {employee.email}
+                            </div>
                           </div>
-                        </div>
-                        <DropdownMenu
-                          trigger={
-                            <button className="p-2 rounded-lg hover:bg-white/10 transition-colors">
-                              <MoreVertical size={18} />
-                            </button>
-                          }
-                          align="end"
-                        >
-                          <DropdownMenuContent>
-                            <DropdownMenuItem onClick={() => handleEdit(employee)}>
-                              <Edit className="mr-2" size={16} />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleDelete(employee.id)}
-                              className="text-red-400"
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="text-sm">{employee.department || 'N/A'}</span>
+                        </td>
+                        <td className="py-4 px-4">
+                          {getStatusBadge(employee.status || 'active')}
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="text-sm">{formatDate(employee.hire_date ?? null)}</span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleEdit(employee)}
                             >
-                              <Trash2 className="mr-2" size={16} />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-
-                      <div className="space-y-2 mb-4">
-                        {employee.email && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Mail size={14} />
-                            <span className="truncate">{employee.email}</span>
+                              <Edit size={14} />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-red-500"
+                              onClick={() => handleDelete(employee.id)}
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
                           </div>
                         )}
-                        {employee.phone && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Phone size={14} />
-                            <span>{employee.phone}</span>
-                          </div>
-                        )}
-                        {employee.position && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <span className="font-medium">{employee.position}</span>
-                          </div>
-                        )}
-                        {employee.hire_date && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Calendar size={14} />
-                            <span>Joined {new Date(employee.hire_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                          </div>
-                        )}
-                        {employee.salary && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <span>Monthly Salary ₹{Number(employee.salary).toLocaleString('en-IN')}</span>
-                          </div>
-                        )}
-                        {employee.address && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <MapPin size={14} />
-                            <span className="truncate">{employee.address}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex gap-2 flex-wrap">
-                        <Badge className={`${getStatusColor(employee.status)} text-sm`}>
-                          {employee.status?.replace('_', ' ') || 'active'}
-                        </Badge>
-                        {employee.department && (
-                          <Badge variant="secondary" className="text-sm">{employee.department}</Badge>
-                        )}
-                      </div>
                     </CardContent>
                   </Card>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        ))
-      )}
 
       {/* Add/Edit Employee Modal */}
       <AddEmployeeModal

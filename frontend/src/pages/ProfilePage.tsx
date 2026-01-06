@@ -15,7 +15,7 @@ export default function ProfilePage() {
       case 'hr_executive':
         return 'bg-blue-500/20 text-blue-400 border-blue-500/30'
       case 'employee':
-        return 'bg-green-500/20 text-green-400 border-green-500/30'
+        return 'bg-green-500/20 text-green-400 dark:bg-[#27584F]/20 dark:text-[#27584F] dark:border-[#27584F]/30 border-green-500/30'
       default:
         return 'bg-gray-500/20 text-gray-400 border-gray-500/30'
     }
@@ -88,7 +88,7 @@ export default function ProfilePage() {
                   <User size={16} />
                   <span>Account Status</span>
                 </div>
-                <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                <Badge className="bg-green-500/20 text-green-400 dark:bg-[#27584F]/20 dark:text-[#27584F] dark:border-[#27584F]/30 border-green-500/30">
                   Active
                 </Badge>
               </div>

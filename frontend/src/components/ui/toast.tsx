@@ -36,7 +36,7 @@ function ToastComponent({ toast, onClose }: ToastProps) {
   }
 
   const styles = {
-    success: 'bg-green-500/10 border-green-500/30 text-green-600 dark:text-green-400',
+    success: 'bg-green-500/10 border-green-500/30 text-green-600 dark:bg-[#27584F]/10 dark:border-[#27584F]/30 dark:text-[#27584F]',
     error: 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400',
     info: 'bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400',
     warning: 'bg-yellow-500/10 border-yellow-500/30 text-yellow-600 dark:text-yellow-400',

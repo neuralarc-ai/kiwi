@@ -542,7 +542,7 @@ export const createPayroll = async (req, res) => {
     const leaveDeduction = await calculateLeaveDeduction(employee_id, month, year, finalSalary);
     
     const finalAllowances = parseFloat(allowances || 0);
-    const tds = calculateTDS(finalSalary, finalAllowances);
+    const tds = await calculateTDS(finalSalary, finalAllowances);
     const baseDeductions = parseFloat(deductions || 0);
     const finalDeductions = baseDeductions + leaveDeduction + tds; // Add leave deduction and TDS to deductions
     const net_salary = finalSalary + finalAllowances - finalDeductions;

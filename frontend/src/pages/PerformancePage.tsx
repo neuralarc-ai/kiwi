@@ -1,4 +1,4 @@
-import { TrendingUp, Plus, Trash2 } from 'lucide-react'
+import { TrendingUp, Plus, Trash2, ChevronDown } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -52,9 +52,24 @@ export default function PerformancePage() {
       setLoading(true)
       setError('')
       
-      // Fetch employees
+      // Fetch employees and filter out future hires
       const empData = await apiService.getEmployees(token)
-      setEmployees(Array.isArray(empData) ? empData : [])
+      const today = new Date()
+      today.setHours(0, 0, 0, 0) // Set to start of day for accurate comparison
+      
+      const activeEmployees = Array.isArray(empData) ? empData.filter((emp: Employee) => {
+        // If no hire_date, include the employee (assume already hired)
+        if (!emp.hire_date) return true
+        
+        // Parse hire_date and compare with today
+        const hireDate = new Date(emp.hire_date)
+        hireDate.setHours(0, 0, 0, 0)
+        
+        // Only include employees whose hire_date is today or in the past
+        return hireDate <= today
+      }) : []
+      
+      setEmployees(activeEmployees)
       
       // Fetch performance data
       const perfData = await apiService.getMonthlyPerformance(token, selectedMonth, selectedYear)
@@ -123,7 +138,7 @@ export default function PerformancePage() {
   }
 
   const getPerformanceColor = (percentage: number) => {
-    if (percentage >= 80) return 'text-green-400'
+    if (percentage >= 80) return 'text-green-400 dark:text-[#27584F]'
     if (percentage >= 60) return 'text-yellow-400'
     return 'text-red-400'
   }
@@ -238,15 +253,16 @@ export default function PerformancePage() {
         </Card>
       )}
 
-      <Card className="glass-strong">
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Month</label>
+      <Card variant="glass" className="p-4">
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+          {/* Left side - Dropdowns */}
+          <div className="flex flex-wrap gap-3 flex-1">
+            {/* Month Dropdown */}
+            <div className="relative">
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                className="w-full md:w-48 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-foreground"
+                className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 pr-8 text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20"
                 disabled={!token}
               >
                 {monthNames.map((month, index) => (
@@ -255,21 +271,25 @@ export default function PerformancePage() {
                   </option>
                 ))}
               </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" size={16} />
             </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">Year</label>
-              <Input
-                type="number"
+
+            {/* Year Dropdown */}
+            <div className="relative">
+              <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(parseInt(e.target.value) || new Date().getFullYear())}
-                className="w-full md:w-32"
-                min="2020"
-                max="2100"
+                className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 pr-8 text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20"
                 disabled={!token}
-              />
+              >
+                {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i).map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" size={16} />
             </div>
           </div>
-        </CardContent>
+        </div>
       </Card>
 
       <Card className="glass-strong">
@@ -313,7 +333,7 @@ export default function PerformancePage() {
                   {performances.map((performance) => (
                     <tr 
                       key={`${performance.employee_id}-${performance.month}-${performance.year}`} 
-                      className="border-b hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                      className="border-b"
                     >
                       <td className="p-3 font-medium">
                         {performance.first_name || ''} {performance.last_name || ''}
@@ -328,16 +348,11 @@ export default function PerformancePage() {
                               : parseFloat(String(performance.performance_percentage || 0)) || 0
                             return (
                               <>
-                                <Badge variant={percentage >= 80 ? 'success' : percentage >= 60 ? 'secondary' : 'destructive'}>
-                                  <span className={getPerformanceColor(percentage)}>
-                                    {percentage.toFixed(1)}%
-                                  </span>
-                                </Badge>
                                 <div className="w-32 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                   <div
                                     className={`h-2 rounded-full ${
                                       percentage >= 80
-                                        ? 'bg-green-500'
+                                        ? 'bg-green-500 dark:bg-[#27584F]'
                                         : percentage >= 60
                                         ? 'bg-yellow-500'
                                         : 'bg-red-500'
@@ -345,6 +360,11 @@ export default function PerformancePage() {
                                     style={{ width: `${Math.min(100, percentage)}%` }}
                                   />
                                 </div>
+                                <Badge variant={percentage >= 80 ? 'success' : percentage >= 60 ? 'secondary' : 'destructive'}>
+                                  <span className={getPerformanceColor(percentage)}>
+                                    {percentage.toFixed(1)}%
+                                  </span>
+                                </Badge>
                               </>
                             )
                           })()}
@@ -356,7 +376,7 @@ export default function PerformancePage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDelete(performance.id!)}
-                            className="text-red-600 hover:text-red-700"
+                            className="text-red-600"
                           >
                             <Trash2 size={16} />
                           </Button>

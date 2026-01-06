@@ -14,14 +14,12 @@ function DashboardContent() {
         "transition-all duration-300 overflow-x-hidden min-w-0 box-border",
         isMobile 
           ? "ml-0 w-full" // Full width on mobile, sidebar overlays
-          : (isCollapsed ? "ml-20" : "ml-64")
+          : (isCollapsed ? "ml-16" : "ml-56")
       )}
       style={{
-        width: isMobile ? '100%' : (isCollapsed ? 'calc(100% - 5rem)' : 'calc(100% - 16rem)')
+        width: isMobile ? '100%' : (isCollapsed ? 'calc(100% - 4rem)' : 'calc(100% - 14rem)')
       }}>
-        <div className="w-full max-w-full overflow-x-hidden min-w-0 relative">
           <Navbar />
-        </div>
         <main className="p-3 sm:p-4 md:p-6 overflow-x-hidden max-w-full w-full min-w-0 box-border">
           <div className="max-w-full overflow-x-hidden w-full min-w-0">
             <Outlet />

@@ -11,7 +11,8 @@ import {
   FileText, 
   Loader2,
   Plus,
-  Calculator
+  Calculator,
+  ChevronDown
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { apiService } from '@/services/api'
@@ -39,13 +40,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 
 interface VendorCategory {
   id: string
@@ -93,8 +87,7 @@ export default function VendorsPage() {
   const [newEntry, setNewEntry] = useState({
     head: '',
     subhead: '',
-    tdsPercentage: '10',
-    gstPercentage: '18',
+    gstPercentage: '0',
     frequency: 'Monthly',
     remarks: '',
     amount: '0'
@@ -189,25 +182,35 @@ export default function VendorsPage() {
 
     setIsCreatingEntry(true)
     try {
-      await apiService.createAccountingEntry(token, {
-        head: newEntry.head,
-        subhead: newEntry.subhead || undefined,
-        tdsPercentage: parseFloat(newEntry.tdsPercentage) || 10,
-        gstPercentage: parseFloat(newEntry.gstPercentage) || 18,
+      // Validate required fields
+      if (!newEntry.head || !selectedMonth || !selectedYear) {
+        toast.error('Please fill in all required fields (Head, Month, Year)')
+        setIsCreatingEntry(false)
+        return
+      }
+      
+      const entryData = {
+        head: newEntry.head.trim(),
+        subhead: newEntry.subhead?.trim() || undefined,
+        tdsPercentage: 0,
+        gstPercentage: parseFloat(newEntry.gstPercentage) || 0,
         frequency: newEntry.frequency || 'Monthly',
-        remarks: newEntry.remarks || '',
+        remarks: newEntry.remarks?.trim() || '',
         amount: parseFloat(newEntry.amount) || 0,
         month: selectedMonth,
         year: selectedYear
-      })
+      }
+      
+      console.log('📤 Creating vendor entry:', entryData)
+      
+      await apiService.createAccountingEntry(token, entryData)
 
       toast.success('Vendor entry added successfully')
       setIsAddEntryDialogOpen(false)
       setNewEntry({
         head: '',
         subhead: '',
-        tdsPercentage: '10',
-        gstPercentage: '18',
+        gstPercentage: '0',
         frequency: 'Monthly',
         remarks: '',
         amount: '0'
@@ -216,8 +219,22 @@ export default function VendorsPage() {
       await new Promise(resolve => setTimeout(resolve, 300))
       await fetchAccountingData()
     } catch (err: any) {
-      console.error('Error creating entry:', err)
-      toast.error(err.message || 'Failed to add vendor entry')
+      console.error('❌ Error creating entry:', err)
+      console.error('❌ Error details:', {
+        message: err?.message,
+        response: err?.response,
+        stack: err?.stack
+      })
+      
+      // Extract error message
+      let errorMessage = 'Failed to add vendor entry'
+      if (err?.message) {
+        errorMessage = err.message
+      } else if (err?.response?.data?.message) {
+        errorMessage = err.response.data.message
+      }
+      
+      toast.error(errorMessage)
     } finally {
       setIsCreatingEntry(false)
     }
@@ -312,9 +329,8 @@ export default function VendorsPage() {
                 <tr className="border-b border-border">
                   <th className="text-left p-3 font-semibold text-sm">Vendor/Service</th>
                   <th className="text-left p-3 font-semibold text-sm">Subhead</th>
-                  <th className="text-right p-3 font-semibold text-sm">TDS %</th>
-                  <th className="text-right p-3 font-semibold text-sm">GST %</th>
-                  <th className="text-left p-3 font-semibold text-sm">Remarks</th>
+                  <th className="text-center p-3 font-semibold text-sm w-24">GST/Tax %</th>
+                  <th className="text-left p-3 pl-6 font-semibold text-sm">Remarks</th>
                   <th className="text-right p-3 font-semibold text-sm">Amount (₹)</th>
                 </tr>
               </thead>
@@ -327,19 +343,16 @@ export default function VendorsPage() {
                   return (
                     <tr
                       key={entry.id}
-                      className="border-b border-border hover:bg-muted/50 transition-colors"
+                      className="border-b border-border"
                     >
                       <td className="p-3 text-sm font-medium">{entry.head}</td>
                       <td className="p-3 text-sm text-muted-foreground">
                         {entry.subhead || '-'}
                       </td>
-                      <td className="p-3 text-sm text-right">
-                        {entry.tdsPercentage > 0 ? `${entry.tdsPercentage}%` : '-'}
-                      </td>
-                      <td className="p-3 text-sm text-right">
+                      <td className="p-3 text-sm text-center">
                         {entry.gstPercentage > 0 ? `${entry.gstPercentage}%` : '-'}
                       </td>
-                      <td className="p-3 text-sm text-muted-foreground max-w-xs truncate">
+                      <td className="p-3 pl-6 text-sm text-muted-foreground break-words">
                         {entry.remarks || '-'}
                       </td>
                       <td className="p-3">
@@ -359,7 +372,7 @@ export default function VendorsPage() {
                                 e.currentTarget.blur()
                               }
                             }}
-                            className="w-32 text-right"
+                            className="w-28 text-right text-sm px-2"
                             disabled={isSaving}
                           />
                           {isSaving && (
@@ -373,7 +386,7 @@ export default function VendorsPage() {
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-border font-semibold bg-muted/50">
-                  <td colSpan={5} className="p-3 text-sm text-right">
+                  <td colSpan={4} className="p-3 text-sm text-right">
                     Total:
                   </td>
                   <td className="p-3 text-sm text-right">{formatCurrency(total)}</td>
@@ -400,58 +413,52 @@ export default function VendorsPage() {
         </p>
       </motion.div>
 
-      {/* Month/Year Selector */}
-      <Card variant="glass">
-        <CardContent className="p-5">
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="vendor-month-select" className="whitespace-nowrap">
-                Month:
-              </Label>
-              <Select
-                value={selectedMonth.toString()}
-                onValueChange={(value) => {
-                  setSelectedMonth(parseInt(value))
+      {/* Filter Bar - Unity Style */}
+      <Card variant="glass" className="p-4">
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+          {/* Left side - Dropdowns */}
+          <div className="flex flex-wrap gap-3 flex-1">
+            {/* Month Dropdown */}
+            <div className="relative">
+              <select
+                value={selectedMonth}
+                onChange={(e) => {
+                  setSelectedMonth(parseInt(e.target.value))
                   setLocalAmounts({})
                 }}
+                className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 pr-8 text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20"
               >
-                <SelectTrigger id="vendor-month-select" className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {monthNames.map((month, index) => (
-                    <SelectItem key={index} value={(index + 1).toString()}>
-                      {month}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {monthNames.map((month, index) => (
+                  <option key={index} value={index + 1}>
+                    {month}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" size={16} />
             </div>
 
-            <div className="flex items-center gap-2">
-              <Label htmlFor="vendor-year-select" className="whitespace-nowrap">
-                Year:
-              </Label>
-              <Select
-                value={selectedYear.toString()}
-                onValueChange={(value) => {
-                  setSelectedYear(parseInt(value))
+            {/* Year Dropdown */}
+            <div className="relative">
+              <select
+                value={selectedYear}
+                onChange={(e) => {
+                  setSelectedYear(parseInt(e.target.value))
                   setLocalAmounts({})
                 }}
+                className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 pr-8 text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20"
               >
-                <SelectTrigger id="vendor-year-select" className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {years.map((year) => (
-                    <SelectItem key={year} value={year.toString()}>
-                      {year}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {years.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" size={16} />
             </div>
+          </div>
 
+          {/* Right side - Actions */}
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             {(user?.role === 'admin' || user?.role === 'hr_executive') && (
               <Dialog open={isAddEntryDialogOpen} onOpenChange={setIsAddEntryDialogOpen}>
                 <DialogTrigger asChild>
@@ -489,50 +496,36 @@ export default function VendorsPage() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="vendor-tds">TDS Percentage (%)</Label>
-                        <Input
-                          id="vendor-tds"
-                          type="number"
-                          min="0"
-                          max="100"
-                          step="0.01"
-                          value={newEntry.tdsPercentage}
-                          onChange={(e) => setNewEntry({ ...newEntry, tdsPercentage: e.target.value })}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="vendor-gst">GST Percentage (%)</Label>
-                        <Input
-                          id="vendor-gst"
-                          type="number"
-                          min="0"
-                          max="100"
-                          step="0.01"
-                          value={newEntry.gstPercentage}
-                          onChange={(e) => setNewEntry({ ...newEntry, gstPercentage: e.target.value })}
-                        />
-                      </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="vendor-gst">GST/Tax Percentage (%)</Label>
+                      <Input
+                        id="vendor-gst"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={newEntry.gstPercentage}
+                        onChange={(e) => setNewEntry({ ...newEntry, gstPercentage: e.target.value })}
+                        placeholder="0"
+                      />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="vendor-frequency">Frequency</Label>
-                      <Select
-                        value={newEntry.frequency}
-                        onValueChange={(value) => setNewEntry({ ...newEntry, frequency: value })}
-                      >
-                        <SelectTrigger id="vendor-frequency">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Monthly">Monthly</SelectItem>
-                          <SelectItem value="Quarterly">Quarterly</SelectItem>
-                          <SelectItem value="Yearly">Yearly</SelectItem>
-                          <SelectItem value="Once">Once</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="relative">
+                        <select
+                          id="vendor-frequency"
+                          value={newEntry.frequency}
+                          onChange={(e) => setNewEntry({ ...newEntry, frequency: e.target.value })}
+                          className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 pr-8 text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 w-full"
+                        >
+                          <option value="Monthly">Monthly</option>
+                          <option value="Quarterly">Quarterly</option>
+                          <option value="Yearly">Yearly</option>
+                          <option value="Once">Once</option>
+                        </select>
+                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" size={16} />
+                      </div>
                     </div>
 
                     <div className="space-y-2">
@@ -567,8 +560,7 @@ export default function VendorsPage() {
                         setNewEntry({
                           head: '',
                           subhead: '',
-                          tdsPercentage: '10',
-                          gstPercentage: '18',
+                          gstPercentage: '0',
                           frequency: 'Monthly',
                           remarks: '',
                           amount: '0'
@@ -592,7 +584,7 @@ export default function VendorsPage() {
               </Dialog>
             )}
           </div>
-        </CardContent>
+        </div>
       </Card>
 
       {/* Vendor Categories */}
@@ -644,9 +636,8 @@ export default function VendorsPage() {
                       <tr className="border-b border-border">
                         <th className="text-left p-3 font-semibold text-sm">Vendor/Service</th>
                         <th className="text-left p-3 font-semibold text-sm">Subhead</th>
-                        <th className="text-right p-3 font-semibold text-sm">TDS %</th>
-                        <th className="text-right p-3 font-semibold text-sm">GST %</th>
-                        <th className="text-left p-3 font-semibold text-sm">Remarks</th>
+                        <th className="text-center p-3 font-semibold text-sm w-24">GST/Tax %</th>
+                        <th className="text-left p-3 pl-6 font-semibold text-sm">Remarks</th>
                         <th className="text-right p-3 font-semibold text-sm">Amount (₹)</th>
                       </tr>
                     </thead>
@@ -659,19 +650,16 @@ export default function VendorsPage() {
                         return (
                           <tr
                             key={entry.id}
-                            className="border-b border-border hover:bg-muted/50 transition-colors"
+                            className="border-b border-border"
                           >
                             <td className="p-3 text-sm font-medium">{entry.head}</td>
                             <td className="p-3 text-sm text-muted-foreground">
                               {entry.subhead || '-'}
                             </td>
-                            <td className="p-3 text-sm text-right">
-                              {entry.tdsPercentage > 0 ? `${entry.tdsPercentage}%` : '-'}
-                            </td>
-                            <td className="p-3 text-sm text-right">
+                            <td className="p-3 text-sm text-center">
                               {entry.gstPercentage > 0 ? `${entry.gstPercentage}%` : '-'}
                             </td>
-                            <td className="p-3 text-sm text-muted-foreground max-w-xs truncate">
+                            <td className="p-3 pl-6 text-sm text-muted-foreground break-words">
                               {entry.remarks || '-'}
                             </td>
                             <td className="p-3">
@@ -691,7 +679,7 @@ export default function VendorsPage() {
                                       e.currentTarget.blur()
                                     }
                                   }}
-                                  className="w-32 text-right"
+                                  className="w-28 text-right text-sm px-2"
                                   disabled={isSaving}
                                 />
                                 {isSaving && (
@@ -705,7 +693,7 @@ export default function VendorsPage() {
                     </tbody>
                     <tfoot>
                       <tr className="border-t-2 border-border font-semibold bg-muted/50">
-                        <td colSpan={5} className="p-3 text-sm text-right">
+                        <td colSpan={4} className="p-3 text-sm text-right">
                           Total:
                         </td>
                         <td className="p-3 text-sm text-right">

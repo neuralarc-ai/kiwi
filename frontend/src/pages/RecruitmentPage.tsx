@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Briefcase, Plus, Search, MoreVertical, Edit, Trash2 } from 'lucide-react'
+import { Briefcase, Plus, Search, MoreVertical, Edit, Trash2, Clock, MapPin, DollarSign, Calendar, ChevronDown } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -10,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from '@/component
 import { apiService } from '@/services/api'
 import { useToast, ToastContainer } from '@/components/ui/toast'
 import { useAuth } from '@/contexts/AuthContext'
+import { useTheme } from '@/contexts/ThemeContext'
 import AddJobPostingModal from '@/components/AddJobPostingModal'
 
 interface JobPosting {
@@ -29,6 +29,7 @@ interface JobPosting {
 
 export default function RecruitmentPage() {
   const { token } = useAuth()
+  const { theme } = useTheme()
   const toast = useToast()
   const [jobPostings, setJobPostings] = useState<JobPosting[]>([])
   const [loading, setLoading] = useState(true)
@@ -121,7 +122,29 @@ export default function RecruitmentPage() {
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A'
-    return new Date(dateString).toLocaleDateString()
+    const date = new Date(dateString)
+    const day = String(date.getDate()).padStart(2, '0')
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const year = date.getFullYear()
+    return `${day}/${month}/${year}`
+  }
+
+  const formatSalary = (salaryRange: string) => {
+    if (!salaryRange) return 'N/A'
+    // Extract numbers from salary range (e.g., "10000-20000" or "10000")
+    const numbers = salaryRange.match(/\d+/g)
+    if (!numbers || numbers.length === 0) return salaryRange
+    
+    // Format the first number as rupees in lakhs (L format)
+    const salary = parseInt(numbers[0])
+    const lakhs = salary / 100000
+    if (lakhs >= 1) {
+      return `₹${lakhs}L`
+    } else {
+      // If less than 1 lakh, show in thousands
+      const thousands = salary / 1000
+      return `₹${thousands}K`
+    }
   }
 
   return (
@@ -146,49 +169,50 @@ export default function RecruitmentPage() {
         </Button>
       </motion.div>
 
-      {/* Search and Filters */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="flex flex-col sm:flex-row gap-3 sm:gap-4 overflow-x-hidden max-w-full"
-      >
-        <div className="flex-1 relative min-w-0">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+      {/* Filter Bar - Unity Style */}
+      <Card variant="glass" className="p-4">
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+          {/* Left side - Dropdowns */}
+          <div className="flex flex-wrap gap-3 flex-1">
+            {/* Department Dropdown */}
+            {availableDepartments.length > 1 && (
+              <div className="relative">
+                <select
+                  value={selectedDepartment}
+                  onChange={(e) => setSelectedDepartment(e.target.value)}
+                  className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 pr-8 text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20"
+                >
+                  {availableDepartments.map((dept) => (
+                    <option key={dept} value={dept}>
+                      {dept} {dept !== 'All' && `(${jobPostings.filter(j => j.department === dept).length})`}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" size={16} />
+              </div>
+            )}
+          </div>
+
+          {/* Right side - Search */}
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            {/* Small Search Bar */}
+            <div className="relative flex-1 sm:flex-initial sm:w-[200px]">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" size={14} />
           <Input
             variant="glass"
             placeholder="Search job postings..."
-            className="pl-9 w-full text-sm"
+                className="pl-8 h-9 text-sm"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-      </motion.div>
-
-      {/* Department Filter Tags - Only show departments that have active jobs */}
-      {availableDepartments.length > 1 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="flex gap-2 flex-wrap"
-        >
-          {availableDepartments.map((dept) => (
-            <Badge
-              key={dept}
-              variant={selectedDepartment === dept ? 'default' : 'secondary'}
-              className="cursor-pointer hover:scale-105 transition-transform"
-              onClick={() => setSelectedDepartment(dept)}
-            >
-              {dept} {dept !== 'All' && `(${jobPostings.filter(j => j.department === dept).length})`}
-            </Badge>
-          ))}
-        </motion.div>
-      )}
+          </div>
+        </div>
+      </Card>
 
       {/* Active Job Postings */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <Card key={i} variant="glass">
               <CardContent className="p-6">
@@ -212,26 +236,107 @@ export default function RecruitmentPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
-          {filteredJobPostings.map((job, index) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+          {filteredJobPostings.map((job, index) => {
+            // Different gradient combinations for light and dark themes
+            const gradientVariants = [
+              {
+                // Light theme gradients
+                light: {
+                  from: 'from-gray-50',
+                  to: 'to-white',
+                  hoverFrom: 'hover:from-blue-50',
+                  hoverTo: 'hover:to-gray-50'
+                },
+                // Dark theme gradients
+                dark: {
+                  from: 'from-[#242424]',
+                  to: 'to-[#020202]',
+                  hoverFrom: 'hover:from-[#182135]',
+                  hoverTo: 'hover:to-[#080808]'
+                }
+              },
+              {
+                light: {
+                  from: 'from-gray-100',
+                  to: 'to-gray-50',
+                  hoverFrom: 'hover:from-purple-50',
+                  hoverTo: 'hover:to-gray-100'
+                },
+                dark: {
+                  from: 'from-[#050a0a]',
+                  to: 'to-[#051818]',
+                  hoverFrom: 'hover:from-[#05070a]',
+                  hoverTo: 'hover:to-[#0b1a3b]'
+                }
+              },
+              {
+                light: {
+                  from: 'from-blue-50',
+                  to: 'to-white',
+                  hoverFrom: 'hover:from-indigo-50',
+                  hoverTo: 'hover:to-blue-50'
+                },
+                dark: {
+                  from: 'from-[#171c35]',
+                  to: 'to-[#000000]',
+                  hoverFrom: 'hover:from-[#2b131e]',
+                  hoverTo: 'hover:to-[#141414]'
+                }
+              }
+            ]
+            const gradient = gradientVariants[index % gradientVariants.length]
+            const isDark = theme === 'dark'
+            
+            // Get gradient style based on theme
+            const getGradientStyle = (from: string, to: string) => {
+              if (isDark) {
+                const fromColor = from.replace('from-[#', '').replace(']', '')
+                const toColor = to.replace('to-[#', '').replace(']', '')
+                return `linear-gradient(to top, #${fromColor}, #${toColor})`
+              }
+              return undefined
+            }
+            
+            const baseGradient = getGradientStyle(gradient.dark.from, gradient.dark.to)
+            const hoverGradient = getGradientStyle(
+              gradient.dark.hoverFrom.replace('hover:from-[#', 'from-[#'),
+              gradient.dark.hoverTo.replace('hover:to-[#', 'to-[#')
+            )
+
+            return (
             <motion.div
               key={job.id}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.05 }}
-            >
-              <Card variant="glass" className="h-full flex flex-col">
-                <CardContent className="p-6 flex flex-col flex-1">
-                  <div className="flex items-start justify-between mb-4">
-                    <Briefcase className="text-blue-500" size={24} />
-                    <div className="flex items-center gap-2">
-                      <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                className="group h-full"
+              >
+                <div 
+                  className={`bg-gradient-to-t ${gradient.light.from} ${gradient.light.to} ${gradient.light.hoverFrom} ${gradient.light.hoverTo} relative before:absolute before:inset-0 before:opacity-5 rounded-2xl border border-gray-200 dark:border-gray-600/50 transition-all duration-500 ease-in-out h-full flex flex-col overflow-hidden shadow-lg hover:shadow-xl`}
+                  style={isDark ? { background: baseGradient } : undefined}
+                  onMouseEnter={(e) => {
+                    if (isDark && hoverGradient) {
+                      e.currentTarget.style.background = hoverGradient
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (isDark && baseGradient) {
+                      e.currentTarget.style.background = baseGradient
+                    }
+                  }}
+                >
+                  <div className="relative flex flex-col flex-1 p-6 pb-4 z-10">
+                    {/* Header with status badge and menu */}
+                    <div className="flex items-start justify-between mb-3">
+                      {/* Status Badge */}
+                      <div className="bg-white dark:bg-gray-800 w-fit px-3 rounded-full text-xs py-1 text-black dark:text-white mb-1">
                         Active
-                      </Badge>
+                      </div>
                       <DropdownMenu
                         trigger={
-                          <button className="p-2 rounded-lg hover:bg-white/10 transition-colors">
-                            <MoreVertical size={18} />
+                          <button className="p-0.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors">
+                            <MoreVertical size={14} className="text-gray-600 dark:text-gray-400 transition-colors" />
                           </button>
                         }
                         align="end"
@@ -251,47 +356,62 @@ export default function RecruitmentPage() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
+
+                    {/* Job Title */}
+                    <div className="mb-4">
+                      <h3 className="text-lg font-semibold pt-2 text-gray-900 dark:text-slate-100 mb-1 line-clamp-2">
+                        {job.title}
+                      </h3>
                   </div>
 
-                  <h3 className="font-semibold text-lg mb-2 line-clamp-2">{job.title}</h3>
-
+                    {/* Job Details with Icons */}
                   <div className="space-y-2 mb-4 flex-1">
-                    {job.department && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span className="font-medium">Department:</span>
-                        <Badge variant="secondary">{job.department}</Badge>
-                      </div>
-                    )}
+                      {/* Employment Type with Clock Icon */}
                     {job.position_type && (
-                      <div className="text-sm text-muted-foreground">
-                        <span className="font-medium">Type:</span> {job.position_type.replace('_', ' ')}
+                        <div className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-slate-400">
+                          <Clock size={14} className="text-gray-600 dark:text-slate-500 flex-shrink-0" />
+                          <span>{job.position_type.replace('_', ' ')}</span>
                       </div>
                     )}
+
+                      {/* Location with MapPin Icon */}
                     {job.location && (
-                      <div className="text-sm text-muted-foreground">
-                        <span className="font-medium">Location:</span> {job.location}
+                        <div className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-slate-400">
+                          <MapPin size={14} className="text-gray-600 dark:text-slate-500 flex-shrink-0" />
+                          <span>{job.location}</span>
                       </div>
                     )}
+
+                      {/* Salary with DollarSign Icon */}
                     {job.salary_range && (
-                      <div className="text-sm text-muted-foreground">
-                        <span className="font-medium">Salary:</span> {job.salary_range}
+                        <div className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-slate-400">
+                          <DollarSign size={14} className="text-gray-600 dark:text-slate-500 flex-shrink-0" />
+                          <span>{formatSalary(job.salary_range)}</span>
                       </div>
                     )}
+
+                      {/* Deadline with Calendar Icon */}
                     {job.application_deadline && (
-                      <div className="text-sm text-muted-foreground">
-                        <span className="font-medium">Deadline:</span> {formatDate(job.application_deadline)}
+                        <div className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-slate-400">
+                          <Calendar size={14} className="text-gray-600 dark:text-slate-500 flex-shrink-0" />
+                          <span>{formatDate(job.application_deadline)}</span>
                       </div>
                     )}
+                    </div>
+
+                    {/* Description */}
                     {job.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2 mt-2">
+                      <div className="mt-auto pt-3 pb-1">
+                        <p className="text-sm text-gray-600 dark:text-slate-500 line-clamp-3 break-words">
                         {job.description}
                       </p>
+                      </div>
                     )}
                   </div>
-                </CardContent>
-              </Card>
+                  </div>
             </motion.div>
-          ))}
+            )
+          })}
         </div>
       )}
 

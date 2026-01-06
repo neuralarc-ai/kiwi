@@ -59,7 +59,7 @@ export default function RoyalBrandTitle({
           initial={{ opacity: 0, letterSpacing: '0.5em' }}
           animate={{ opacity: 1, letterSpacing: '0.1em' }}
           transition={{ delay: 0.3, duration: 0.8, ease: 'easeOut' }}
-          className={`${sizeClasses[size]} font-kiwi relative text-black`}
+          className={`${sizeClasses[size]} font-kiwi relative text-black dark:text-white`}
           style={{
             letterSpacing: '0.15em',
             fontFamily: "'Dancing Script', cursive",
@@ -70,13 +70,13 @@ export default function RoyalBrandTitle({
             <motion.span
               animate={{ opacity: [1, 0] }}
               transition={{ duration: 0.8, repeat: Infinity }}
-              className="inline-block w-1 h-12 md:h-16 lg:h-20 ml-1 align-middle bg-black"
+              className="inline-block w-1 h-12 md:h-16 lg:h-20 ml-1 align-middle bg-black dark:bg-white"
             />
           )}
           
           {/* Gentle Glow Effect Behind Text */}
           <motion.span
-            className="absolute inset-0 blur-2xl opacity-20 bg-black"
+            className="absolute inset-0 blur-2xl opacity-20 bg-black dark:bg-white"
             style={{
               filter: 'blur(20px)',
               zIndex: -1,

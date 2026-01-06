@@ -145,13 +145,26 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, employee 
       setLoading(true)
       setError('')
 
+      // Prepare data for API - convert empty strings to null and format salary
+      const employeeData = {
+        ...formData,
+        phone: formData.phone || null,
+        department: formData.department || null,
+        position: formData.position || null,
+        hire_date: formData.hire_date || null,
+        salary: formData.salary ? parseFloat(formData.salary) : null,
+        address: formData.address || null,
+      }
+
+      console.log('📤 Creating employee with data:', employeeData)
+
       let savedEmployee
       if (employee) {
         // Update existing employee
-        savedEmployee = await apiService.updateEmployee(employee.id, formData, token)
+        savedEmployee = await apiService.updateEmployee(employee.id, employeeData, token)
       } else {
         // Create new employee
-        savedEmployee = await apiService.createEmployee(formData, token)
+        savedEmployee = await apiService.createEmployee(employeeData, token)
       }
 
       // Upload photo if a new photo was selected (for both new and existing employees)
@@ -171,7 +184,22 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, employee 
       onSuccess()
       onClose()
     } catch (err: any) {
-      setError(err?.message || 'Failed to save employee')
+      console.error('❌ Error saving employee:', err)
+      console.error('❌ Error details:', {
+        message: err?.message,
+        response: err?.response,
+        stack: err?.stack
+      })
+      
+      // Extract error message
+      let errorMessage = 'Failed to save employee'
+      if (err?.message) {
+        errorMessage = err.message
+      } else if (err?.response?.data?.message) {
+        errorMessage = err.response.data.message
+      }
+      
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -180,7 +208,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, employee 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto m-2 sm:m-4">
-        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-3 sm:p-4 flex items-center justify-between z-10">
+        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-3 sm:p-4 flex items-center justify-between z-50">
           <h2 className="text-lg sm:text-xl font-bold truncate pr-2">{employee ? 'Edit Employee' : 'Add New Employee'}</h2>
           <Button variant="ghost" size="sm" onClick={onClose}>
             <X size={20} />
@@ -207,7 +235,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, employee 
                   <button
                     type="button"
                     onClick={handleRemovePhoto}
-                    className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors"
+                    className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg"
                   >
                     <X size={16} />
                   </button>
@@ -229,9 +257,9 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, employee 
               />
               <label
                 htmlFor="photo-upload"
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-black text-white rounded-lg cursor-pointer text-sm"
               >
-                <Upload size={18} />
+                <Upload size={14} />
                 <span>{photoPreview ? 'Change Photo' : 'Upload Photo'}</span>
               </label>
               <p className="text-xs text-muted-foreground text-center">

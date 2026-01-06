@@ -83,6 +83,11 @@ const generateEmployeeId = async () => {
 
 export const createEmployee = async (req, res) => {
   try {
+    console.log('📝 Create employee request received:', {
+      body: req.body,
+      user: req.user
+    });
+    
     const {
       employee_id,
       first_name,
@@ -98,8 +103,21 @@ export const createEmployee = async (req, res) => {
       employee_type,
     } = req.body;
 
+    console.log('📝 Extracted employee data:', {
+      first_name,
+      last_name,
+      email,
+      phone,
+      department,
+      position,
+      hire_date,
+      salary,
+      employee_type
+    });
+
     // Validate required fields
     if (!first_name || !last_name || !email) {
+      console.error('❌ Missing required fields:', { first_name, last_name, email });
       return res.status(400).json({ message: 'First name, last name, and email are required' });
     }
 
@@ -135,19 +153,72 @@ export const createEmployee = async (req, res) => {
       });
     }
 
+    console.log('💾 Inserting employee into database:', {
+      employee_id: finalEmployeeId,
+      email,
+      first_name,
+      last_name
+    });
+
     const result = await pool.query(
       `INSERT INTO employees (
         employee_id, first_name, last_name, email, phone, department, 
         position, hire_date, salary, address, status, employee_type
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
       RETURNING *`,
-      [finalEmployeeId, first_name, last_name, email, phone, department, position, hire_date, salary, address, status || 'active', employee_type || 'Employee']
+      [
+        finalEmployeeId, 
+        first_name, 
+        last_name, 
+        email, 
+        phone || null, 
+        department || null, 
+        position || null, 
+        hire_date || null, 
+        salary ? parseFloat(salary) : null, 
+        address || null, 
+        status || 'active', 
+        employee_type || 'Employee'
+      ]
     );
 
+    console.log('✅ Employee created successfully:', result.rows[0]);
     res.status(201).json(result.rows[0]);
   } catch (error) {
-    console.error('Create employee error:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('❌ Create employee error:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      constraint: error.constraint,
+      stack: error.stack
+    });
+    
+    // Return more specific error messages
+    if (error.code === '23505') {
+      return res.status(400).json({ 
+        message: 'An employee with this email or employee ID already exists',
+        error: error.detail || error.message
+      });
+    }
+    
+    if (error.code === '23503') {
+      return res.status(400).json({ 
+        message: 'Invalid reference: One of the provided values does not exist',
+        error: error.detail || error.message
+      });
+    }
+    
+    if (error.code === '23514') {
+      return res.status(400).json({ 
+        message: 'Data validation failed: ' + (error.detail || error.message),
+        error: error.detail || error.message
+      });
+    }
+    
+    res.status(500).json({ 
+      message: 'Server error: ' + (error.message || 'Failed to create employee'),
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 

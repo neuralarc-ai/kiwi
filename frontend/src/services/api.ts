@@ -240,14 +240,41 @@ class ApiService {
     })
   }
 
-  async register(data: { email: string; password: string; role: string; first_name?: string; last_name?: string; phone?: string; department?: string; position?: string; address?: string }, token?: string): Promise<RegisterResponse> {
-    const endpoint = token ? '/auth/register' : '/auth/register-first'
-    const headers = token ? this.getAuthHeaders(token) : {}
+  async register(data: { email: string; password: string; role?: string; first_name?: string; last_name?: string; phone?: string; department?: string; position?: string; address?: string }, token?: string): Promise<RegisterResponse> {
+    // Public registration - no token needed
+    // If token is provided, it's an admin request
+    const endpoint = '/auth/register'
+    const headers = token ? this.getAuthHeaders(token) : {
+      'Content-Type': 'application/json'
+    }
+    
+    // Validate data before sending
+    if (!data.email || !data.password) {
+      throw new Error('Email and password are required')
+    }
+    
+    console.log('📤 Register API call:', { 
+      endpoint, 
+      hasToken: !!token,
+      email: data.email,
+      hasPassword: !!data.password 
+    })
     
     return this.request<RegisterResponse>(endpoint, {
       method: 'POST',
       headers,
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        email: data.email.trim(),
+        password: data.password,
+        ...(data.role && { role: data.role }),
+      }),
+    })
+  }
+
+  async getUsers(token: string): Promise<Array<{ id: number; email: string; role: string; created_at: string }>> {
+    return this.request<Array<{ id: number; email: string; role: string; created_at: string }>>('/auth/users', {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
     })
   }
 

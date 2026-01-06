@@ -26,10 +26,51 @@ export const initializeDatabase = async () => {
         id SERIAL PRIMARY KEY,
         email VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
-        role VARCHAR(50) NOT NULL CHECK (role IN ('admin', 'hr_executive')),
+        role VARCHAR(50) NOT NULL CHECK (role IN ('admin', 'hr_executive', 'employee')),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    
+    // Update existing table constraint to allow 'employee' role
+    try {
+      // First, try to drop any existing role constraint
+      await pool.query(`
+        DO $$ 
+        BEGIN
+          -- Drop old constraint if it exists (try different possible names)
+          ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+          ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check1;
+        EXCEPTION WHEN OTHERS THEN
+          -- Ignore errors if constraint doesn't exist
+          NULL;
+        END $$;
+      `);
+      
+      // Add new constraint that allows all three roles
+      await pool.query(`
+        ALTER TABLE users ADD CONSTRAINT users_role_check 
+        CHECK (role IN ('admin', 'hr_executive', 'employee'));
+      `);
+      console.log('✅ Updated users table constraint to allow employee role');
+    } catch (constraintError) {
+      // If constraint already exists with correct values, that's fine
+      if (constraintError.code === '42710' || constraintError.message?.includes('already exists')) {
+        console.log('✅ Users table constraint already allows all roles');
+      } else {
+        console.warn('⚠️ Could not update users table constraint:', constraintError.message);
+        // Try to verify the constraint allows employee
+        try {
+          const checkResult = await pool.query(`
+            SELECT constraint_name, check_clause 
+            FROM information_schema.check_constraints 
+            WHERE table_name = 'users' AND constraint_name LIKE '%role%'
+          `);
+          console.log('Current role constraint:', checkResult.rows);
+        } catch (e) {
+          console.error('Could not check constraint:', e);
+        }
+      }
+    }
 
     // Employees table
     await pool.query(`

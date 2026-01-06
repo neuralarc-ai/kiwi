@@ -6,19 +6,19 @@ import RoyalBrandTitle from './RoyalBrandTitle'
 
 export default function Hero() {
   return (
-    <section className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-[#B7E4EA] overflow-hidden">
+    <section className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-[hsl(var(--palette-light-blue))] overflow-hidden">
       {/* Background decoration - Soft Aqua Blue */}
       <div className="absolute inset-0 overflow-hidden">
         <div 
           className="absolute -top-40 -right-40 w-80 h-80 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob"
           style={{
-            background: 'linear-gradient(135deg, #B7E4EA 0%, rgba(183, 228, 234, 0.5) 100%)',
+            background: 'linear-gradient(135deg, hsl(var(--palette-light-blue)) 0%, hsl(var(--palette-light-blue) / 0.5) 100%)',
           }}
         ></div>
         <div 
           className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-2000"
           style={{
-            background: 'linear-gradient(135deg, rgba(183, 228, 234, 0.5) 0%, #B7E4EA 100%)',
+            background: 'linear-gradient(135deg, hsl(var(--palette-light-blue) / 0.5) 0%, hsl(var(--palette-light-blue)) 100%)',
           }}
         ></div>
       </div>
@@ -84,8 +84,8 @@ export default function Hero() {
                 transition={{ duration: 0.4, delay: 0.7 + index * 0.1 }}
                 className="flex flex-col items-center"
               >
-                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center mb-2 sm:mb-3" style={{ background: 'rgba(255, 215, 0, 0.2)', border: '1px solid rgba(255, 215, 0, 0.3)' }}>
-                  <feature.icon className="text-[#FFD700] w-6 h-6 sm:w-8 sm:h-8" />
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center mb-2 sm:mb-3" style={{ background: 'hsl(var(--palette-yellow) / 0.2)', border: '1px solid hsl(var(--palette-yellow) / 0.3)' }}>
+                  <feature.icon className="w-6 h-6 sm:w-8 sm:h-8" style={{ color: 'hsl(var(--palette-yellow))' }} />
                 </div>
                 <p className="text-xs sm:text-sm font-medium text-gray-700 text-center break-words">
                   {feature.label}
