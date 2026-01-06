@@ -992,67 +992,67 @@ export default function DashboardHome() {
               ) : (
                 <div className="flex flex-col h-[300px]">
                   {/* Upper Section - Data Rows */}
-                  <div className="flex-1 flex flex-col divide-y divide-gray-200 dark:divide-gray-700">
+                  <div className="flex-1 flex flex-col divide-y divide-gray-200 dark:divide-gray-700 overflow-y-auto">
                     {/* Current Month Total */}
-                    <div className="flex items-center justify-between py-4 px-4">
-                      <span className="font-bold text-sm sm:text-base">Current Month Total</span>
-                      <span className="font-bold text-lg sm:text-xl">
-                        ₹{monthlyComparison.currentTotal.toLocaleString('en-IN')}
+                    <div className="flex items-center justify-between py-2.5 px-3 flex-shrink-0">
+                      <span className="font-medium text-sm text-gray-700 dark:text-gray-300">Current Month Total</span>
+                      <span className="font-semibold text-sm text-gray-900 dark:text-white">
+                        ₹{monthlyComparison.currentTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                       </span>
                     </div>
 
                     {/* Previous Month Total */}
-                    <div className="flex items-center justify-between py-4 px-4">
-                      <span className="font-bold text-sm sm:text-base">Previous Month Total</span>
-                      <span className="font-bold text-lg sm:text-xl">
-                        ₹{monthlyComparison.previousTotal.toLocaleString('en-IN')}
+                    <div className="flex items-center justify-between py-2.5 px-3 flex-shrink-0">
+                      <span className="font-medium text-sm text-gray-700 dark:text-gray-300">Previous Month Total</span>
+                      <span className="font-semibold text-sm text-gray-900 dark:text-white">
+                        ₹{monthlyComparison.previousTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                       </span>
                     </div>
 
                     {/* TDS Current */}
-                    <div className="flex items-center justify-between py-4 px-4">
-                      <span className="font-bold text-sm sm:text-base" style={{ color: paletteColors.pink }}>
+                    <div className="flex items-center justify-between py-2.5 px-3 flex-shrink-0">
+                      <span className="font-medium text-sm" style={{ color: paletteColors.pink }}>
                         TDS (Current)
                       </span>
-                      <span className="font-bold text-lg sm:text-xl" style={{ color: paletteColors.pink }}>
+                      <span className="font-semibold text-sm" style={{ color: paletteColors.pink }}>
                         ₹{monthlyComparison.currentTDS.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                       </span>
                     </div>
 
                     {/* TDS Previous */}
-                    <div className="flex items-center justify-between py-4 px-4">
-                      <span className="font-bold text-sm sm:text-base" style={{ color: paletteColors.pink }}>
+                    <div className="flex items-center justify-between py-2.5 px-3 flex-shrink-0">
+                      <span className="font-medium text-sm" style={{ color: paletteColors.pink }}>
                         TDS (Previous)
                       </span>
-                      <span className="font-bold text-lg sm:text-xl" style={{ color: paletteColors.pink }}>
+                      <span className="font-semibold text-sm" style={{ color: paletteColors.pink }}>
                         ₹{monthlyComparison.previousTDS.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                       </span>
                     </div>
 
                     {/* GST/Tax Current */}
-                    <div className="flex items-center justify-between py-4 px-4">
-                      <span className="font-bold text-sm sm:text-base" style={{ color: paletteColors.lavender }}>
+                    <div className="flex items-center justify-between py-2.5 px-3 flex-shrink-0">
+                      <span className="font-medium text-sm" style={{ color: paletteColors.lavender }}>
                         GST/Tax (Current)
                       </span>
-                      <span className="font-bold text-lg sm:text-xl" style={{ color: paletteColors.lavender }}>
+                      <span className="font-semibold text-sm" style={{ color: paletteColors.lavender }}>
                         ₹{monthlyComparison.currentGST.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                       </span>
                     </div>
 
                     {/* GST/Tax Previous */}
-                    <div className="flex items-center justify-between py-4 px-4">
-                      <span className="font-bold text-sm sm:text-base" style={{ color: paletteColors.lavender }}>
+                    <div className="flex items-center justify-between py-2.5 px-3 flex-shrink-0">
+                      <span className="font-medium text-sm" style={{ color: paletteColors.lavender }}>
                         GST/Tax (Previous)
                       </span>
-                      <span className="font-bold text-lg sm:text-xl" style={{ color: paletteColors.lavender }}>
+                      <span className="font-semibold text-sm" style={{ color: paletteColors.lavender }}>
                         ₹{monthlyComparison.previousGST.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                       </span>
                     </div>
                   </div>
 
-                  {/* Lower Section - Total Change Note */}
+                  {/* Lower Section - Total Change */}
                   <div 
-                    className="p-4 rounded-lg mt-2"
+                    className="p-2.5 rounded-lg mt-2 flex-shrink-0"
                     style={{ 
                       backgroundColor: paletteColors.present,
                       color: 'white'
@@ -1061,17 +1061,17 @@ export default function DashboardHome() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         {monthlyComparison.difference >= 0 ? (
-                          <TrendingUp className="w-4 h-4" />
+                          <TrendingUp className="w-3.5 h-3.5" />
                         ) : (
-                          <TrendingDown className="w-4 h-4" />
+                          <TrendingDown className="w-3.5 h-3.5" />
                         )}
-                        <span className="text-sm font-medium">Total Change</span>
+                        <span className="text-xs font-medium">Total Change</span>
                       </div>
                       <div className="text-right">
-                        <p className="text-base font-bold">
-                          ₹{Math.abs(monthlyComparison.difference).toLocaleString('en-IN')}
+                        <p className="text-xs font-semibold">
+                          ₹{Math.abs(monthlyComparison.difference).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                         </p>
-                        <p className="text-xs font-medium opacity-90">
+                        <p className="text-[10px] font-medium opacity-90">
                           {monthlyComparison.difference >= 0 ? '+' : ''}{monthlyComparison.percentageChange}%
                         </p>
                       </div>
