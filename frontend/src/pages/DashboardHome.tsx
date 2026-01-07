@@ -1343,14 +1343,7 @@ export default function DashboardHome() {
                                     </span>
                                   )}
                                 </div>
-                                <p className="text-xs text-muted-foreground mb-1">{notification.message}</p>
-                                <p className="text-[10px] text-muted-foreground">
-                                  {new Date(notification.date).toLocaleDateString('en-US', { 
-                                    month: 'short', 
-                                    day: 'numeric',
-                                    year: 'numeric'
-                                  })}
-                                </p>
+                                <p className="text-xs text-muted-foreground">{notification.message}</p>
                               </div>
                             </div>
                           </div>

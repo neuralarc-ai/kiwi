@@ -20,7 +20,6 @@ import { useSidebar } from '@/contexts/SidebarContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTheme } from '@/contexts/ThemeContext'
 import { cn } from '@/lib/utils'
-import RoyalBrandTitle from '@/components/home/RoyalBrandTitle'
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -76,20 +75,46 @@ export default function Sidebar() {
           willChange: 'transform',
         }}
       >
-      <div className="flex flex-col h-full p-3 sm:p-4 overflow-hidden">
+      <div className={cn(
+        "flex flex-col h-full overflow-hidden",
+        isCollapsed && !isMobile ? "p-2" : "p-3 sm:p-4"
+      )}>
         {/* Logo and Close Button */}
-        <div className="flex items-center justify-between mb-6 flex-shrink-0">
-          {(!isCollapsed || isMobile) && (
-            <RoyalBrandTitle 
-              size="sm" 
-              showSubtitle={false} 
-              variant="navbar"
-              className="flex-shrink-0 min-w-0"
+        <div className={cn(
+          "flex items-center mb-6 flex-shrink-0",
+          isCollapsed && !isMobile ? "flex-col gap-3" : "justify-between"
+        )}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
+            className={cn(
+              "flex items-center justify-center flex-shrink-0 rounded-lg",
+              isCollapsed && !isMobile ? "w-full" : "w-auto",
+              // White background in light mode, black in dark mode
+              "bg-white dark:bg-black p-1.5 dark:shadow-md"
+            )}
+          >
+            <img
+              src={theme === 'dark' ? "/logo/logo1.png" : "/logo/logo.png"}
+              alt="KIWI Logo"
+              className={cn(
+                "object-contain transition-all duration-300",
+                isCollapsed && !isMobile ? "w-8 h-8" : "w-10 h-10 sm:w-12 sm:h-12"
+              )}
+              onError={(e) => {
+                // Fallback if logo doesn't exist
+                console.error('Logo image failed to load')
+                e.currentTarget.style.display = 'none'
+              }}
             />
-          )}
+          </motion.div>
           <button
             onClick={toggleSidebar}
-            className="p-2 rounded-lg flex-shrink-0 min-w-[40px] min-h-[40px] flex items-center justify-center"
+            className={cn(
+              "p-2 rounded-lg flex-shrink-0 min-w-[40px] min-h-[40px] flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors",
+              isCollapsed && !isMobile && "w-full"
+            )}
             aria-label={isMobileOpen ? "Close menu" : "Open menu"}
             style={{ color: 'hsl(var(--palette-dark-green))' }}
           >
@@ -132,7 +157,7 @@ export default function Sidebar() {
               className={({ isActive }) =>
                 cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative overflow-visible min-h-[44px] w-full",
-                  isCollapsed && !isMobile && "justify-center px-2",
+                  isCollapsed && !isMobile && "justify-center px-2 gap-0",
                   isActive
                     ? "text-gray-900 dark:text-white font-medium"
                     : "text-gray-600 dark:text-gray-400"
@@ -146,14 +171,14 @@ export default function Sidebar() {
                     animate={{ scale: 1 }}
                     transition={{ delay: index * 0.1 }}
                     className={cn(
-                      "flex-shrink-0 relative z-10",
-                      isCollapsed && !isMobile && "flex items-center justify-center w-full"
+                      "flex-shrink-0 relative z-10 flex items-center justify-center",
+                      isCollapsed && !isMobile && "w-full"
                     )}
                   >
                     <item.icon 
                       size={
                         isMobile ? 22 
-                        : isCollapsed ? 22 
+                        : isCollapsed ? 24 
                         : 24
                       } 
                       className={cn(
@@ -204,16 +229,15 @@ export default function Sidebar() {
           <button
             onClick={toggleTheme}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-gray-600 dark:text-gray-400",
-              isCollapsed && !isMobile && "justify-center px-2",
-              !isCollapsed && !isMobile && "justify-start"
+              "w-full flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 text-gray-600 dark:text-gray-400",
+              isCollapsed && !isMobile ? "justify-center px-2 gap-0" : "gap-3 justify-start"
             )}
             aria-label="Toggle theme"
           >
             {theme === 'light' ? (
-              <Sun size={isMobile ? 22 : isCollapsed ? 22 : 24} />
+              <Sun size={isMobile ? 22 : isCollapsed ? 24 : 24} />
             ) : (
-              <Moon size={isMobile ? 22 : isCollapsed ? 22 : 24} />
+              <Moon size={isMobile ? 22 : isCollapsed ? 24 : 24} />
             )}
             {(!isCollapsed || isMobile) && (
               <span className="text-sm font-medium">
@@ -226,13 +250,12 @@ export default function Sidebar() {
           <button
             onClick={handleLogout}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300",
-              isCollapsed && !isMobile && "justify-center px-2",
-              !isCollapsed && !isMobile && "justify-start"
+              "w-full flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300",
+              isCollapsed && !isMobile ? "justify-center px-2 gap-0" : "gap-3 justify-start"
             )}
           >
             <LogOut 
-              size={isMobile ? 22 : isCollapsed ? 22 : 24} 
+              size={isMobile ? 22 : isCollapsed ? 24 : 24} 
               style={{ color: 'hsl(var(--palette-red-orange))' }}
             />
             {(!isCollapsed || isMobile) && (

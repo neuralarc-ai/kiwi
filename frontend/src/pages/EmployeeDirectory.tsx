@@ -241,15 +241,6 @@ export default function EmployeeDirectory() {
                   <thead>
                     <tr className="border-b border-gray-200 dark:border-gray-700">
                       <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        <input 
-                          ref={selectAllCheckboxRef}
-                          type="checkbox" 
-                          className="rounded border-gray-300 cursor-pointer" 
-                          checked={isAllSelected}
-                          onChange={(e) => handleSelectAll(e.target.checked)}
-                        />
-                      </th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         Name
                       </th>
                       <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -274,14 +265,6 @@ export default function EmployeeDirectory() {
                         animate={{ opacity: 1 }}
                         className=""
                       >
-                        <td className="py-4 px-4">
-                          <input 
-                            type="checkbox" 
-                            className="rounded border-gray-300 cursor-pointer" 
-                            checked={selectedEmployees.has(employee.id)}
-                            onChange={(e) => handleSelectEmployee(employee.id, e.target.checked)}
-                          />
-                        </td>
                         <td className="py-4 px-4">
                           <div 
                             className="cursor-pointer hover:text-primary transition-colors"

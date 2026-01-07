@@ -11,7 +11,7 @@ export default function RegisterPage() {
   useEffect(() => {
     // Redirect to login after 3 seconds
     const timer = setTimeout(() => {
-      navigate('/login')
+        navigate('/login')
     }, 3000)
     return () => clearTimeout(timer)
   }, [navigate])

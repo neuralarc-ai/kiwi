@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { User, Shield, DollarSign, Settings as SettingsIcon, Save, UserPlus, Trash2, Users, ChevronDown } from 'lucide-react'
+import { User, Shield, DollarSign, Settings as SettingsIcon, Save, UserPlus, Trash2, Users, ChevronDown, Calculator, TrendingUp, Key, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -31,6 +31,9 @@ export default function SettingsPage() {
     lwpAllocation: '0',
   })
   const [isSaving, setIsSaving] = useState(false)
+  
+  // Security state
+  const [showChangePassword, setShowChangePassword] = useState(false)
   
   // User management state
   const [showAddUser, setShowAddUser] = useState(false)
@@ -103,6 +106,7 @@ export default function SettingsPage() {
         new_password: '',
         confirm_password: '',
       })
+      setShowChangePassword(false)
       toast.success('Password updated successfully')
     }, 1000)
   }
@@ -281,36 +285,37 @@ export default function SettingsPage() {
   return (
     <>
       <ToastContainer toasts={toast.toasts} onClose={toast.removeToast} />
-    <div className="space-y-6 overflow-x-hidden max-w-full">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-2 gradient-text">Settings</h1>
-        <p className="text-sm sm:text-base text-muted-foreground">Manage your account settings and preferences</p>
-      </motion.div>
+      <div className="space-y-4 overflow-x-hidden max-w-full">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-2 gradient-text">Settings</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Manage your account settings and preferences</p>
+        </motion.div>
 
-      {/* Profile Settings */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
+        <div className="max-w-4xl space-y-4">
+          {/* Profile Settings */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
         <Card variant="glass">
-          <CardHeader>
+          <CardHeader className="p-4 pb-3">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-500/20">
                 <User className="text-black dark:text-white" size={24} />
               </div>
               <div className="space-y-1">
-                <CardTitle>Profile Settings</CardTitle>
-                <CardDescription className="leading-relaxed">Manage your personal information</CardDescription>
+                <CardTitle className="text-lg">Profile Settings</CardTitle>
+                <CardDescription>Manage your personal information</CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
-              <div className="space-y-2">
+          <CardContent className="p-4 pt-0 space-y-4">
+            <div className="space-y-4">
+              <div className="space-y-2 max-w-md">
                 <label className="text-sm font-medium">Email</label>
                 <Input
                   variant="glass"
@@ -321,7 +326,7 @@ export default function SettingsPage() {
                 />
                 <p className="text-xs text-muted-foreground">Email cannot be changed</p>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 max-w-md">
                 <label className="text-sm font-medium">Role</label>
                 <Input
                   variant="glass"
@@ -332,99 +337,144 @@ export default function SettingsPage() {
                 <p className="text-xs text-muted-foreground">Role cannot be changed</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </motion.div>
+            </CardContent>
+          </Card>
+          </motion.div>
 
-      {/* Security Settings */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
+          {/* Security Settings */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
         <Card variant="glass">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-50 dark:bg-[#27584F]/20">
-                <Shield className="text-green-600 dark:text-[#27584F]" size={24} />
+          <CardHeader className="p-4 pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-green-50 dark:bg-[#27584F]/20">
+                  <Shield className="text-green-600 dark:text-[#27584F]" size={24} />
+                </div>
+                <div className="space-y-1">
+                  <CardTitle className="text-lg">Security</CardTitle>
+                  <CardDescription>Manage your password and security settings</CardDescription>
+                </div>
               </div>
-              <div className="space-y-1">
-                <CardTitle>Security</CardTitle>
-                <CardDescription className="leading-relaxed">Manage your password and security settings</CardDescription>
-              </div>
+              {!showChangePassword && (
+                <Button
+                  onClick={() => setShowChangePassword(true)}
+                  size="sm"
+                >
+                  <Key className="h-4 w-4 mr-2" />
+                  Change Password
+                </Button>
+              )}
             </div>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <form onSubmit={handlePasswordSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Current Password</label>
-                <Input
-                  variant="glass"
-                  type="password"
-                  value={passwordData.current_password}
-                  onChange={(e) => setPasswordData({ ...passwordData, current_password: e.target.value })}
-                  placeholder="Enter current password"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">New Password</label>
-                <Input
-                  variant="glass"
-                  type="password"
-                  value={passwordData.new_password}
-                  onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })}
-                  placeholder="Enter new password"
-                  required
-                  minLength={8}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Password must be at least 8 characters with uppercase, lowercase, number, and special character
-                </p>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Confirm New Password</label>
-                <Input
-                  variant="glass"
-                  type="password"
-                  value={passwordData.confirm_password}
-                  onChange={(e) => setPasswordData({ ...passwordData, confirm_password: e.target.value })}
-                  placeholder="Confirm new password"
-                  required
-                />
-              </div>
-              <Button type="submit" disabled={loading}>
-                {loading ? 'Updating...' : 'Update Password'}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </motion.div>
+          <CardContent className="p-4 pt-0 space-y-4">
+            {/* Change Password Form */}
+            {showChangePassword && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="border border-border rounded-lg p-3 bg-muted/50"
+              >
+                <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                  <div className="space-y-2 max-w-md">
+                    <label className="text-sm font-medium">Current Password</label>
+                    <Input
+                      variant="glass"
+                      type="password"
+                      value={passwordData.current_password}
+                      onChange={(e) => setPasswordData({ ...passwordData, current_password: e.target.value })}
+                      placeholder="Enter current password"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2 max-w-md">
+                    <label className="text-sm font-medium">New Password</label>
+                    <Input
+                      variant="glass"
+                      type="password"
+                      value={passwordData.new_password}
+                      onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })}
+                      placeholder="Enter new password"
+                      required
+                      minLength={8}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Password must be at least 8 characters with uppercase, lowercase, number, and special character
+                    </p>
+                  </div>
+                  <div className="space-y-2 max-w-md">
+                    <label className="text-sm font-medium">Confirm New Password</label>
+                    <Input
+                      variant="glass"
+                      type="password"
+                      value={passwordData.confirm_password}
+                      onChange={(e) => setPasswordData({ ...passwordData, confirm_password: e.target.value })}
+                      placeholder="Confirm new password"
+                      required
+                    />
+                  </div>
+                  <div className="flex gap-2 pt-4 border-t border-border">
+                    <Button type="submit" disabled={loading} size="sm" className="w-auto">
+                      {loading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Updating...
+                        </>
+                      ) : (
+                        'Update Password'
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setShowChangePassword(false)
+                        setPasswordData({
+                          current_password: '',
+                          new_password: '',
+                          confirm_password: '',
+                        })
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              </motion.div>
+            )}
+            </CardContent>
+          </Card>
+          </motion.div>
 
-      {/* Payroll Configuration */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-      >
+          {/* Payroll Configuration */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
         <Card variant="glass">
-          <CardHeader>
+          <CardHeader className="p-4 pb-3">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-500/20">
                 <DollarSign className="text-purple-600 dark:text-purple-400" size={24} />
               </div>
               <div className="space-y-1">
-                <CardTitle>Payroll Configuration</CardTitle>
-                <CardDescription className="leading-relaxed">
+                <CardTitle className="text-lg">Payroll Configuration</CardTitle>
+                <CardDescription>
                   Configure TDS percentage, allowed leaves, and working days for payroll calculations
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <form onSubmit={handlePayrollConfigSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8">
-                <div className="space-y-3">
+          <CardContent className="p-4 pt-0 space-y-3">
+            <form onSubmit={handlePayrollConfigSubmit} className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
                   <label className="text-sm font-medium">TDS Percentage (%)</label>
                   <Input
                     variant="glass"
@@ -435,13 +485,14 @@ export default function SettingsPage() {
                     value={payrollConfig.tds_percentage}
                     onChange={(e) => setPayrollConfig({ ...payrollConfig, tds_percentage: e.target.value })}
                     placeholder="10"
+                    className="w-full max-w-xs"
                     required
                   />
-                  <p className="text-xs text-muted-foreground leading-relaxed">
+                  <p className="text-xs text-muted-foreground">
                     Tax Deducted at Source percentage (0-100%)
                   </p>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <label className="text-sm font-medium">Max Allowed Leaves</label>
                   <Input
                     variant="glass"
@@ -451,13 +502,14 @@ export default function SettingsPage() {
                     value={payrollConfig.max_allowed_leaves}
                     onChange={(e) => setPayrollConfig({ ...payrollConfig, max_allowed_leaves: e.target.value })}
                     placeholder="2"
+                    className="w-full max-w-xs"
                     required
                   />
-                  <p className="text-xs text-muted-foreground leading-relaxed">
+                  <p className="text-xs text-muted-foreground">
                     Maximum leave days per month before deduction
                   </p>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <label className="text-sm font-medium">Working Days per Month</label>
                   <Input
                     variant="glass"
@@ -468,9 +520,10 @@ export default function SettingsPage() {
                     value={payrollConfig.working_days_per_month}
                     onChange={(e) => setPayrollConfig({ ...payrollConfig, working_days_per_month: e.target.value })}
                     placeholder="30"
+                    className="w-full max-w-xs"
                     required
                   />
-                  <p className="text-xs text-muted-foreground leading-relaxed">
+                  <p className="text-xs text-muted-foreground">
                     Number of working days in a month
                   </p>
                 </div>
@@ -481,109 +534,117 @@ export default function SettingsPage() {
                 </Button>
               </div>
             </form>
-          </CardContent>
-        </Card>
-      </motion.div>
+            </CardContent>
+          </Card>
+          </motion.div>
 
-      {/* Leave Type Allocations */}
-      {(user?.role === 'admin' || user?.role === 'hr_executive') && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
+          {/* Leave Type Allocations */}
+          {(user?.role === 'admin' || user?.role === 'hr_executive') && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
           <Card variant="glass">
-            <CardHeader>
+            <CardHeader className="p-4 pb-3">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-green-50 dark:bg-[#27584F]/20">
                   <SettingsIcon className="h-6 w-6 text-green-600 dark:text-[#27584F]" />
                 </div>
                 <div className="space-y-1">
-                  <CardTitle>Annual Leave Allocations</CardTitle>
-                  <CardDescription className="leading-relaxed">
+                  <CardTitle className="text-lg">Annual Leave Allocations</CardTitle>
+                  <CardDescription>
                     Configure yearly leave entitlements by type
                   </CardDescription>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <form onSubmit={handleLeaveAllocationSubmit} className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-                  <div className="space-y-3">
+            <CardContent className="p-4 pt-0 space-y-4">
+              <form onSubmit={handleLeaveAllocationSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
                     <Label htmlFor="clAllocation">Casual Leave (CL) - Annual</Label>
                     <Input
                       id="clAllocation"
                       variant="glass"
                       type="number"
                       min="0"
+                      step="1"
                       value={leaveAllocations.clAllocation}
                       onChange={(e) =>
                         setLeaveAllocations({ ...leaveAllocations, clAllocation: e.target.value })
                       }
+                      className="w-full max-w-xs"
                       required
                     />
-                    <p className="text-xs text-muted-foreground leading-relaxed">
+                    <p className="text-xs text-muted-foreground">
                       Annual allocation for casual leaves (default: 12 days)
                     </p>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     <Label htmlFor="slAllocation">Sick Leave (SL) - Annual</Label>
                     <Input
                       id="slAllocation"
                       variant="glass"
                       type="number"
                       min="0"
+                      step="1"
                       value={leaveAllocations.slAllocation}
                       onChange={(e) =>
                         setLeaveAllocations({ ...leaveAllocations, slAllocation: e.target.value })
                       }
+                      className="w-full max-w-xs"
                       required
                     />
-                    <p className="text-xs text-muted-foreground leading-relaxed">
+                    <p className="text-xs text-muted-foreground">
                       Annual allocation for sick leaves (default: 12 days)
                     </p>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     <Label htmlFor="plAllocation">Privilege Leave (PL) - Annual</Label>
                     <Input
                       id="plAllocation"
                       variant="glass"
                       type="number"
                       min="0"
+                      step="1"
                       value={leaveAllocations.plAllocation}
                       onChange={(e) =>
                         setLeaveAllocations({ ...leaveAllocations, plAllocation: e.target.value })
                       }
+                      className="w-full max-w-xs"
                       required
                     />
-                    <p className="text-xs text-muted-foreground leading-relaxed">
+                    <p className="text-xs text-muted-foreground">
                       Annual allocation for privilege/earned leaves
                     </p>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     <Label htmlFor="lwpAllocation">Leave Without Pay (LWP)</Label>
                     <Input
                       id="lwpAllocation"
                       variant="glass"
                       type="number"
                       min="0"
+                      step="1"
                       value={leaveAllocations.lwpAllocation}
                       onChange={(e) =>
                         setLeaveAllocations({ ...leaveAllocations, lwpAllocation: e.target.value })
                       }
+                      className="w-full max-w-xs"
                       required
                     />
-                    <p className="text-xs text-muted-foreground leading-relaxed">
+                    <p className="text-xs text-muted-foreground">
                       Unlimited (leave without salary)
                     </p>
                   </div>
                 </div>
 
-                <div className="pt-6 border-t border-border">
-                  <Button type="submit" disabled={isSaving} className="w-full sm:w-auto">
+                <div className="pt-2">
+                  <Button type="submit" disabled={isSaving}>
                     <Save className="h-4 w-4 mr-2" />
                     {isSaving ? "Saving..." : "Save Leave Allocations"}
                   </Button>
@@ -591,26 +652,26 @@ export default function SettingsPage() {
               </form>
             </CardContent>
           </Card>
-        </motion.div>
-      )}
+            </motion.div>
+          )}
 
-      {/* User Management - Admin Only */}
-      {user?.role === 'admin' && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-        >
+          {/* User Management - Admin Only */}
+          {user?.role === 'admin' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
           <Card variant="glass">
-            <CardHeader>
+            <CardHeader className="p-4 pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-500/20">
                     <Users className="text-blue-600 dark:text-blue-400" size={24} />
                   </div>
                   <div className="space-y-1">
-                    <CardTitle>User Management</CardTitle>
-                    <CardDescription className="leading-relaxed">
+                    <CardTitle className="text-lg">User Management</CardTitle>
+                    <CardDescription>
                       Create new user accounts
                     </CardDescription>
                   </div>
@@ -626,18 +687,18 @@ export default function SettingsPage() {
                 )}
               </div>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="p-4 pt-0 space-y-4">
               {/* Add Users Form */}
               {showAddUser && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="border border-border rounded-lg p-4 bg-muted/50"
+                  className="border border-border rounded-lg p-3 bg-muted/50"
                 >
-                  <form onSubmit={handleAddUsers} className="space-y-6">
+                  <form onSubmit={handleAddUsers} className="space-y-4">
                     {users.map((userData, index) => (
-                      <div key={index} className="space-y-4 p-4 border border-border rounded-lg bg-background/50">
+                      <div key={index} className="space-y-3 p-3 border border-border rounded-lg bg-background/50">
                         <div className="flex items-center justify-between mb-2">
                           <h4 className="text-sm font-semibold">User {index + 1}</h4>
                           {users.length > 1 && (
@@ -651,8 +712,8 @@ export default function SettingsPage() {
                             </Button>
                           )}
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
+                        <div className="space-y-4">
+                          <div className="space-y-2 max-w-md">
                             <Label htmlFor={`userEmail-${index}`}>Email *</Label>
                             <Input
                               id={`userEmail-${index}`}
@@ -664,14 +725,14 @@ export default function SettingsPage() {
                               required
                             />
                           </div>
-                          <div className="space-y-2">
+                          <div className="space-y-2 max-w-md">
                             <Label htmlFor={`userRole-${index}`}>Role *</Label>
                             <div className="relative">
                               <select
                                 id={`userRole-${index}`}
                                 value={userData.role}
                                 onChange={(e) => updateUserField(index, 'role', e.target.value)}
-                                className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 pr-8 text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 w-full h-10"
+                                className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 pr-8 text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 w-full h-10 max-w-md"
                                 required
                               >
                                 <option value="admin">Admin</option>
@@ -681,7 +742,7 @@ export default function SettingsPage() {
                               <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" size={16} />
                             </div>
                           </div>
-                          <div className="space-y-2">
+                          <div className="space-y-2 max-w-md">
                             <Label htmlFor={`userPassword-${index}`}>Password *</Label>
                             <Input
                               id={`userPassword-${index}`}
@@ -697,7 +758,7 @@ export default function SettingsPage() {
                               Min 8 chars with uppercase, lowercase, number, and special character
                             </p>
                           </div>
-                          <div className="space-y-2">
+                          <div className="space-y-2 max-w-md">
                             <Label htmlFor={`userConfirmPassword-${index}`}>Confirm Password *</Label>
                             <Input
                               id={`userConfirmPassword-${index}`}
@@ -726,12 +787,20 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="flex gap-2 pt-4 border-t border-border">
-                      <Button type="submit" disabled={creatingUsers} className="flex-1">
-                        {creatingUsers ? 'Creating Users...' : `Create ${users.length} User(s)`}
+                      <Button type="submit" disabled={creatingUsers} size="sm" className="w-auto">
+                        {creatingUsers ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Creating Users...
+                          </>
+                        ) : (
+                          `Create ${users.length} User(s)`
+                        )}
                       </Button>
                       <Button
                         type="button"
                         variant="outline"
+                        size="sm"
                         onClick={() => {
                           setShowAddUser(false)
                           setUsers([{
@@ -750,38 +819,61 @@ export default function SettingsPage() {
               )}
             </CardContent>
           </Card>
-        </motion.div>
-      )}
+            </motion.div>
+          )}
 
-      {/* Info Cards */}
-      {(user?.role === 'admin' || user?.role === 'hr_executive') && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card variant="glass" className="bg-blue-50/50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20">
-              <CardContent className="p-6">
-                <h3 className="font-semibold mb-2 text-base">Salary Calculation</h3>
-                <p className="text-sm text-muted-foreground">
-                  Net Salary = Gross Salary - TDS - Leave Deductions
-                </p>
-              </CardContent>
-            </Card>
-            <Card variant="glass" className="bg-purple-50/50 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/20">
-              <CardContent className="p-6">
-                <h3 className="font-semibold mb-2 text-base">Leave Deduction</h3>
-                <p className="text-sm text-muted-foreground">
-                  (Salary / Working Days) × Excess Leaves
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </motion.div>
-      )}
-      
-    </div>
+          {/* Info Cards */}
+          {(user?.role === 'admin' || user?.role === 'hr_executive') && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="grid grid-cols-1 md:grid-cols-2 gap-4"
+            >
+              <Card variant="glass" className="bg-blue-50/50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20">
+                <CardHeader className="p-4 pb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-500/20">
+                      <Calculator className="text-blue-600 dark:text-blue-400" size={24} />
+                    </div>
+                    <div className="space-y-1">
+                      <CardTitle className="text-lg">Salary Calculation</CardTitle>
+                      <CardDescription>Formula for calculating net salary</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 space-y-4">
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      Net Salary = Gross Salary - TDS - Leave Deductions
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card variant="glass" className="bg-purple-50/50 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/20">
+                <CardHeader className="p-4 pb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-500/20">
+                      <TrendingUp className="text-purple-600 dark:text-purple-400" size={24} />
+                    </div>
+                    <div className="space-y-1">
+                      <CardTitle className="text-lg">Leave Deduction</CardTitle>
+                      <CardDescription>Formula for calculating leave deductions</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 space-y-4">
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      (Salary / Working Days) × Excess Leaves
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </div>
+      </div>
     </>
   )
 }
