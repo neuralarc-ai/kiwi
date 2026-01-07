@@ -183,8 +183,8 @@ app.get('/api/test-public', (req, res) => {
 // Version endpoint to verify deployed code
 app.get('/api/version', (req, res) => {
   res.json({ 
-    version: '2.1.0-register-public-fix',
-    message: 'Register endpoint is PUBLIC',
+    version: '3.0.0-admin-only-registration',
+    message: 'User registration is now restricted to administrators',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'not set',
     database: {
@@ -193,35 +193,25 @@ app.get('/api/version', (req, res) => {
       hasPassword: !!process.env.DB_PASSWORD
     },
     routes: {
-      register: 'PUBLIC - no auth required',
+      register: 'PROTECTED - requires admin/hr_executive token',
       login: 'PUBLIC - no auth required',
-      registerFirst: 'PUBLIC - no auth required',
-      registerAdmin: 'PROTECTED - requires admin/hr_executive token',
+      registerFirst: 'PUBLIC - first admin setup only',
       users: 'PROTECTED - requires admin/hr_executive token'
     },
     publicRoutes: [
       '/api/auth/login',
-      '/api/auth/register',
       '/api/auth/register-first',
       '/api/health',
       '/api/test-public',
       '/api/version'
-    ]
+    ],
+    features: {
+      userRegistration: 'Admin-only',
+      userManagement: 'Available in Settings page for admins'
+    }
   });
 });
 
-// Test register endpoint directly (for debugging)
-app.post('/api/auth/register-test', (req, res) => {
-  console.log('🧪 Test register endpoint called');
-  console.log('🧪 Request body:', req.body);
-  console.log('🧪 Has auth header:', !!req.headers.authorization);
-  res.json({
-    message: 'Test register endpoint - this is public',
-    hasAuthHeader: !!req.headers.authorization,
-    body: req.body,
-    timestamp: new Date().toISOString()
-  });
-});
 
 // 404 handler for API routes (must be after all route registrations)
 app.use('/api/*', (req, res) => {

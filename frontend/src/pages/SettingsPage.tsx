@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { User, Shield, DollarSign, Settings as SettingsIcon, Save } from 'lucide-react'
+import { User, Shield, DollarSign, Settings as SettingsIcon, Save, UserPlus, Trash2, Users, ChevronDown } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -27,10 +27,25 @@ export default function SettingsPage() {
   const [leaveAllocations, setLeaveAllocations] = useState({
     clAllocation: '12',
     slAllocation: '12',
-    plAllocation: '15',
+    plAllocation: '',
     lwpAllocation: '0',
   })
   const [isSaving, setIsSaving] = useState(false)
+  
+  // User management state
+  const [showAddUser, setShowAddUser] = useState(false)
+  const [users, setUsers] = useState<Array<{
+    email: string
+    password: string
+    confirmPassword: string
+    role: string
+  }>>([{
+    email: '',
+    password: '',
+    confirmPassword: '',
+    role: 'hr_executive'
+  }])
+  const [creatingUsers, setCreatingUsers] = useState(false)
 
   // Fetch payroll settings on mount
   useEffect(() => {
@@ -54,7 +69,7 @@ export default function SettingsPage() {
         setLeaveAllocations({
           clAllocation: settingsMap['leave_cl_allocation'] || '12',
           slAllocation: settingsMap['leave_sl_allocation'] || '12',
-          plAllocation: settingsMap['leave_pl_allocation'] || '15',
+          plAllocation: settingsMap['leave_pl_allocation'] || '',
           lwpAllocation: settingsMap['leave_lwp_allocation'] || '0',
         })
       } catch (error) {
@@ -158,6 +173,107 @@ export default function SettingsPage() {
       toast.error(error?.message || 'Failed to update leave allocations')
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const addUserField = () => {
+    setUsers([...users, {
+      email: '',
+      password: '',
+      confirmPassword: '',
+      role: 'hr_executive'
+    }])
+  }
+
+  const removeUserField = (index: number) => {
+    if (users.length > 1) {
+      setUsers(users.filter((_, i) => i !== index))
+    }
+  }
+
+  const updateUserField = (index: number, field: string, value: string) => {
+    const updatedUsers = [...users]
+    updatedUsers[index] = { ...updatedUsers[index], [field]: value }
+    setUsers(updatedUsers)
+  }
+
+  const handleAddUsers = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!token) {
+      toast.warning('Please log in to add users')
+      return
+    }
+
+    // Validate all users
+    for (let i = 0; i < users.length; i++) {
+      const user = users[i]
+      
+      if (!user.email || !user.password) {
+        toast.warning(`User ${i + 1}: Email and password are required`)
+        return
+      }
+
+      if (user.password.length < 8) {
+        toast.warning(`User ${i + 1}: Password must be at least 8 characters`)
+        return
+      }
+
+      if (user.password !== user.confirmPassword) {
+        toast.warning(`User ${i + 1}: Passwords do not match`)
+        return
+      }
+
+      // Validate password strength
+      if (!/[A-Z]/.test(user.password) || !/[a-z]/.test(user.password) || 
+          !/[0-9]/.test(user.password) || !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(user.password)) {
+        toast.warning(`User ${i + 1}: Password must contain uppercase, lowercase, number, and special character`)
+        return
+      }
+    }
+
+    setCreatingUsers(true)
+    let successCount = 0
+    let errorCount = 0
+
+    try {
+      // Create all users
+      for (const user of users) {
+        try {
+          await apiService.createUser(token, {
+            email: user.email.trim(),
+            password: user.password,
+            role: user.role
+          })
+          successCount++
+        } catch (error: any) {
+          console.error(`Error creating user ${user.email}:`, error)
+          errorCount++
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(`Successfully created ${successCount} user(s)${errorCount > 0 ? `. ${errorCount} failed.` : ''}`)
+      }
+      
+      if (errorCount > 0 && successCount === 0) {
+        toast.error(`Failed to create users. Please check the form and try again.`)
+        return
+      }
+      
+      // Reset form
+      setUsers([{
+        email: '',
+        password: '',
+        confirmPassword: '',
+        role: 'hr_executive'
+      }])
+      setShowAddUser(false)
+    } catch (error: any) {
+      console.error('Error creating users:', error)
+      toast.error('Failed to create users')
+    } finally {
+      setCreatingUsers(false)
     }
   }
 
@@ -443,7 +559,7 @@ export default function SettingsPage() {
                       required
                     />
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      Annual allocation for privilege/earned leaves (default: 15 days)
+                      Annual allocation for privilege/earned leaves
                     </p>
                   </div>
 
@@ -473,6 +589,165 @@ export default function SettingsPage() {
                   </Button>
                 </div>
               </form>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
+      {/* User Management - Admin Only */}
+      {user?.role === 'admin' && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <Card variant="glass">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-500/20">
+                    <Users className="text-blue-600 dark:text-blue-400" size={24} />
+                  </div>
+                  <div className="space-y-1">
+                    <CardTitle>User Management</CardTitle>
+                    <CardDescription className="leading-relaxed">
+                      Create new user accounts
+                    </CardDescription>
+                  </div>
+                </div>
+                {!showAddUser && (
+                  <Button
+                    onClick={() => setShowAddUser(true)}
+                    size="sm"
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Add User
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Add Users Form */}
+              {showAddUser && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="border border-border rounded-lg p-4 bg-muted/50"
+                >
+                  <form onSubmit={handleAddUsers} className="space-y-6">
+                    {users.map((userData, index) => (
+                      <div key={index} className="space-y-4 p-4 border border-border rounded-lg bg-background/50">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-sm font-semibold">User {index + 1}</h4>
+                          {users.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeUserField(index)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor={`userEmail-${index}`}>Email *</Label>
+                            <Input
+                              id={`userEmail-${index}`}
+                              variant="glass"
+                              type="email"
+                              placeholder="user@company.com"
+                              value={userData.email}
+                              onChange={(e) => updateUserField(index, 'email', e.target.value)}
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`userRole-${index}`}>Role *</Label>
+                            <div className="relative">
+                              <select
+                                id={`userRole-${index}`}
+                                value={userData.role}
+                                onChange={(e) => updateUserField(index, 'role', e.target.value)}
+                                className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 pr-8 text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 w-full h-10"
+                                required
+                              >
+                                <option value="admin">Admin</option>
+                                <option value="hr_executive">HR Executive</option>
+                                <option value="employee">Employee</option>
+                              </select>
+                              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" size={16} />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`userPassword-${index}`}>Password *</Label>
+                            <Input
+                              id={`userPassword-${index}`}
+                              variant="glass"
+                              type="password"
+                              placeholder="••••••••"
+                              value={userData.password}
+                              onChange={(e) => updateUserField(index, 'password', e.target.value)}
+                              required
+                              minLength={8}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Min 8 chars with uppercase, lowercase, number, and special character
+                            </p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`userConfirmPassword-${index}`}>Confirm Password *</Label>
+                            <Input
+                              id={`userConfirmPassword-${index}`}
+                              variant="glass"
+                              type="password"
+                              placeholder="••••••••"
+                              value={userData.confirmPassword}
+                              onChange={(e) => updateUserField(index, 'confirmPassword', e.target.value)}
+                              required
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={addUserField}
+                        className="w-full sm:w-auto"
+                      >
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Add Another User
+                      </Button>
+                    </div>
+
+                    <div className="flex gap-2 pt-4 border-t border-border">
+                      <Button type="submit" disabled={creatingUsers} className="flex-1">
+                        {creatingUsers ? 'Creating Users...' : `Create ${users.length} User(s)`}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setShowAddUser(false)
+                          setUsers([{
+                            email: '',
+                            password: '',
+                            confirmPassword: '',
+                            role: 'hr_executive'
+                          }])
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                </motion.div>
+              )}
             </CardContent>
           </Card>
         </motion.div>

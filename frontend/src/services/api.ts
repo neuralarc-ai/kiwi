@@ -240,12 +240,10 @@ class ApiService {
     })
   }
 
-  async register(data: { email: string; password: string; role?: string; first_name?: string; last_name?: string; phone?: string; department?: string; position?: string; address?: string }, token?: string): Promise<RegisterResponse> {
-    // Public registration - no token needed
-    // If token is provided, it's an admin request
-    const endpoint = '/auth/register'
-    const headers = token ? this.getAuthHeaders(token) : {
-      'Content-Type': 'application/json'
+  // Admin-only user creation (requires token)
+  async createUser(token: string, data: { email: string; password: string; role?: string }): Promise<RegisterResponse> {
+    if (!token) {
+      throw new Error('Authentication token is required to create users')
     }
     
     // Validate data before sending
@@ -253,22 +251,29 @@ class ApiService {
       throw new Error('Email and password are required')
     }
     
-    console.log('📤 Register API call:', { 
-      endpoint, 
-      hasToken: !!token,
+    console.log('📤 Create user API call (admin):', { 
       email: data.email,
+      role: data.role || 'hr_executive',
       hasPassword: !!data.password 
     })
     
-    return this.request<RegisterResponse>(endpoint, {
+    return this.request<RegisterResponse>('/auth/register', {
       method: 'POST',
-      headers,
+      headers: this.getAuthHeaders(token),
       body: JSON.stringify({
         email: data.email.trim(),
         password: data.password,
-        ...(data.role && { role: data.role }),
+        role: data.role || 'hr_executive',
       }),
     })
+  }
+
+  // Legacy register method - now requires token (for backward compatibility)
+  async register(data: { email: string; password: string; role?: string; first_name?: string; last_name?: string; phone?: string; department?: string; position?: string; address?: string }, token?: string): Promise<RegisterResponse> {
+    if (!token) {
+      throw new Error('User registration is now restricted to administrators. Please contact your administrator to create an account.')
+    }
+    return this.createUser(token, data)
   }
 
   async getUsers(token: string): Promise<Array<{ id: number; email: string; role: string; created_at: string }>> {

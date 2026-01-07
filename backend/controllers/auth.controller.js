@@ -78,14 +78,22 @@ export const register = async (req, res) => {
       passwordType: typeof password
     });
     
-    // Check if this is an admin request (has token)
+    // Registration now requires admin authentication
+    // This endpoint should only be called by authenticated admins/hr_executives
     const currentUserRole = req.user?.role;
     const isAdminRequest = currentUserRole === 'admin' || currentUserRole === 'hr_executive';
     
-    // For public registration (no token), default role is 'hr_executive'
+    // Require admin authentication
+    if (!isAdminRequest) {
+      console.error('❌ Unauthorized registration attempt - admin authentication required');
+      return res.status(403).json({ 
+        message: 'Only administrators can create new user accounts. Please contact your administrator.' 
+      });
+    }
+    
     // For admin requests, use the provided role or default to 'hr_executive'
     let finalRole = 'hr_executive';
-    if (isAdminRequest && role) {
+    if (role) {
       finalRole = role.toLowerCase().trim();
     }
     

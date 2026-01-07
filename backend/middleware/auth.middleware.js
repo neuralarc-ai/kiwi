@@ -1,10 +1,10 @@
 import jwt from 'jsonwebtoken';
 
 // List of public routes that don't require authentication
+// NOTE: /api/auth/register is now PROTECTED - only admins can create users
 const PUBLIC_ROUTES = [
   '/api/auth/login',
-  '/api/auth/register',
-  '/api/auth/register-first',
+  '/api/auth/register-first', // Only for first admin setup
   '/api/health',
   '/api/test-public',
   '/api/version',
