@@ -19,6 +19,25 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5001;
 
+// Request logging middleware (before other middleware)
+app.use((req, res, next) => {
+  const timestamp = new Date().toISOString();
+  console.log('📥 Incoming request:', {
+    timestamp,
+    method: req.method,
+    path: req.path,
+    originalUrl: req.originalUrl,
+    url: req.url,
+    query: req.query,
+    hasBody: !!req.body,
+    hasAuthHeader: !!req.headers.authorization,
+    contentType: req.headers['content-type'],
+    origin: req.headers.origin,
+    userAgent: req.headers['user-agent']?.substring(0, 50)
+  });
+  next();
+});
+
 // Middleware
 // CORS configuration - allow frontend from Vercel and local development
 const allowedOrigins = [
@@ -42,6 +61,7 @@ app.use(cors({
       if (process.env.NODE_ENV === 'development') {
         callback(null, true);
       } else {
+        console.warn('⚠️ CORS blocked origin:', origin);
         callback(new Error('Not allowed by CORS'));
       }
     }
@@ -56,16 +76,57 @@ app.use(express.urlencoded({ extended: true }));
 // Test database connection and initialize tables
 async function startServer() {
   try {
-    // Test connection
-    await pool.query('SELECT NOW()');
-    console.log('Database connected successfully');
+    console.log('🔌 Testing database connection...');
+    console.log('🔌 Database config:', {
+      host: process.env.DB_HOST || 'localhost',
+      database: process.env.DB_NAME || 'hr_management',
+      user: process.env.DB_USER || 'postgres',
+      hasPassword: !!process.env.DB_PASSWORD,
+      ssl: process.env.DB_SSL === 'true' || process.env.DB_HOST?.includes('supabase')
+    });
+    
+    // Test connection with timeout
+    const connectionTest = await Promise.race([
+      pool.query('SELECT NOW() as current_time, version() as db_version'),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database connection timeout after 10 seconds')), 10000)
+      )
+    ]);
+    
+    console.log('✅ Database connected successfully');
+    console.log('✅ Database time:', connectionTest.rows[0]?.current_time);
+    console.log('✅ Database version:', connectionTest.rows[0]?.db_version?.substring(0, 50) + '...');
     
     // Initialize database tables
+    console.log('🔧 Initializing database tables...');
     await initializeDatabase();
-    console.log('Database tables initialized');
+    console.log('✅ Database tables initialized');
+    
+    // Verify users table exists and is accessible
+    const tableCheck = await pool.query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' AND table_name = 'users'
+    `);
+    if (tableCheck.rows.length > 0) {
+      console.log('✅ Users table verified');
+    } else {
+      console.warn('⚠️ Users table not found - this may cause issues');
+    }
   } catch (error) {
-    console.error('Database connection error:', error.message);
-    console.error('Please check your .env file and ensure PostgreSQL is running');
+    console.error('❌ ==========================================');
+    console.error('❌ Database connection error');
+    console.error('❌ Error message:', error.message);
+    console.error('❌ Error code:', error.code);
+    console.error('❌ Error detail:', error.detail);
+    console.error('❌ Full error:', error);
+    console.error('❌ ==========================================');
+    console.error('💡 Please check:');
+    console.error('   1. Database credentials in .env file');
+    console.error('   2. Database server is running');
+    console.error('   3. Network connectivity to database');
+    console.error('   4. SSL configuration (if using cloud database)');
+    console.error('❌ ==========================================');
     process.exit(1);
   }
 }
@@ -122,16 +183,43 @@ app.get('/api/test-public', (req, res) => {
 // Version endpoint to verify deployed code
 app.get('/api/version', (req, res) => {
   res.json({ 
-    version: '2.0.0-register-public',
+    version: '2.1.0-register-public-fix',
     message: 'Register endpoint is PUBLIC',
     timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'not set',
+    database: {
+      host: process.env.DB_HOST || 'not set',
+      database: process.env.DB_NAME || 'not set',
+      hasPassword: !!process.env.DB_PASSWORD
+    },
     routes: {
       register: 'PUBLIC - no auth required',
       login: 'PUBLIC - no auth required',
       registerFirst: 'PUBLIC - no auth required',
       registerAdmin: 'PROTECTED - requires admin/hr_executive token',
       users: 'PROTECTED - requires admin/hr_executive token'
-    }
+    },
+    publicRoutes: [
+      '/api/auth/login',
+      '/api/auth/register',
+      '/api/auth/register-first',
+      '/api/health',
+      '/api/test-public',
+      '/api/version'
+    ]
+  });
+});
+
+// Test register endpoint directly (for debugging)
+app.post('/api/auth/register-test', (req, res) => {
+  console.log('🧪 Test register endpoint called');
+  console.log('🧪 Request body:', req.body);
+  console.log('🧪 Has auth header:', !!req.headers.authorization);
+  res.json({
+    message: 'Test register endpoint - this is public',
+    hasAuthHeader: !!req.headers.authorization,
+    body: req.body,
+    timestamp: new Date().toISOString()
   });
 });
 

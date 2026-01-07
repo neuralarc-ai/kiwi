@@ -5,6 +5,17 @@ dotenv.config();
 
 const { Pool } = pkg;
 
+// Log database configuration (without sensitive data)
+console.log('🔧 Database configuration:', {
+  host: process.env.DB_HOST || 'localhost',
+  port: process.env.DB_PORT || 5432,
+  database: process.env.DB_NAME || 'hr_management',
+  user: process.env.DB_USER || 'postgres',
+  hasPassword: !!process.env.DB_PASSWORD,
+  sslRequired: process.env.DB_HOST?.includes('supabase') || process.env.DB_SSL === 'true',
+  nodeEnv: process.env.NODE_ENV || 'not set'
+});
+
 export const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT || 5432,
@@ -15,6 +26,28 @@ export const pool = new Pool({
   ssl: process.env.DB_HOST?.includes('supabase') || process.env.DB_SSL === 'true' 
     ? { rejectUnauthorized: false } 
     : false,
+  // Connection pool settings
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+});
+
+// Log connection pool events
+pool.on('connect', (client) => {
+  console.log('✅ New database client connected');
+});
+
+pool.on('error', (err, client) => {
+  console.error('❌ Unexpected error on idle database client:', err);
+});
+
+// Test connection on startup
+pool.query('SELECT NOW()', (err, res) => {
+  if (err) {
+    console.error('❌ Database connection test failed:', err.message);
+  } else {
+    console.log('✅ Database connection test successful:', res.rows[0]);
+  }
 });
 
 // Initialize database tables

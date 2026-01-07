@@ -45,14 +45,28 @@ export const login = async (req, res) => {
 };
 
 export const register = async (req, res) => {
+  const startTime = Date.now();
   try {
-    console.log('📥 Register endpoint called');
-    console.log('📥 Request body:', JSON.stringify(req.body));
-    console.log('📥 Request headers:', JSON.stringify(req.headers));
+    const timestamp = new Date().toISOString();
+    console.log('📥 ==========================================');
+    console.log('📥 Register controller called');
+    console.log('📥 Timestamp:', timestamp);
+    console.log('📥 Request method:', req.method);
+    console.log('📥 Request path:', req.path);
+    console.log('📥 Request originalUrl:', req.originalUrl);
+    console.log('📥 Request body keys:', Object.keys(req.body || {}));
+    console.log('📥 Request body email:', req.body?.email || 'MISSING');
+    console.log('📥 Request body has password:', !!req.body?.password);
+    console.log('📥 Request body role:', req.body?.role || 'not provided');
     console.log('📥 Content-Type:', req.headers['content-type']);
     console.log('📥 Has Authorization header:', !!req.headers.authorization);
+    console.log('📥 Authorization header (first 20 chars):', req.headers.authorization?.substring(0, 20) || 'N/A');
     console.log('📥 Has req.user:', !!req.user);
-    console.log('📥 req.user:', req.user);
+    console.log('📥 req.user:', req.user || 'null (expected for public registration)');
+    console.log('📥 Environment:', process.env.NODE_ENV || 'not set');
+    console.log('📥 Database host:', process.env.DB_HOST || 'not set');
+    console.log('📥 Database name:', process.env.DB_NAME || 'not set');
+    console.log('📥 ==========================================');
     
     const { email, password, role } = req.body;
     
@@ -178,7 +192,9 @@ export const register = async (req, res) => {
     }
 
     const user = result.rows[0];
+    const elapsedTime = Date.now() - startTime;
     console.log(`✅ User account created successfully: ${user.email} (ID: ${user.id}, Role: ${user.role})`);
+    console.log(`⏱️ Registration took ${elapsedTime}ms`);
     
     // Double-check: Query the database to confirm user exists
     try {
@@ -221,7 +237,10 @@ export const register = async (req, res) => {
       }
     }
 
+    const totalTime = Date.now() - startTime;
     console.log(`✅ Account created successfully for: ${user.email}`);
+    console.log(`⏱️ Total registration time: ${totalTime}ms`);
+    console.log('📤 Sending success response...');
     
     const responseData = {
       message: 'Account created successfully',
@@ -236,14 +255,28 @@ export const register = async (req, res) => {
       responseData.employee = employee;
     }
     
+    console.log('📤 Response data:', JSON.stringify(responseData, null, 2));
     res.status(201).json(responseData);
+    console.log('✅ Response sent successfully');
   } catch (error) {
-    console.error('❌ Register error:', error);
+    const totalTime = Date.now() - startTime;
+    console.error('❌ ==========================================');
+    console.error('❌ Register error occurred');
+    console.error('❌ Error time:', new Date().toISOString());
+    console.error('❌ Elapsed time:', totalTime + 'ms');
+    console.error('❌ Error type:', error?.constructor?.name || 'Unknown');
+    console.error('❌ Error message:', error?.message || 'No message');
+    console.error('❌ Error code:', error?.code || 'No code');
+    console.error('❌ Error detail:', error?.detail || 'No detail');
+    console.error('❌ Error stack:', error?.stack || 'No stack');
+    console.error('❌ Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+    console.error('❌ ==========================================');
+    
     const errorMessage = error?.message || 'Server error';
-    console.error('❌ Error details:', errorMessage);
-    console.error('❌ Error stack:', error?.stack);
-    res.status(500).json({ 
-      message: errorMessage || 'Server error',
+    const statusCode = error?.code === '23505' ? 400 : (error?.status || 500);
+    
+    res.status(statusCode).json({ 
+      message: errorMessage,
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
