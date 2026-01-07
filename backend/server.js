@@ -71,7 +71,11 @@ async function startServer() {
 }
 
 // Routes
+// Log before mounting auth routes
+console.log('🔓 Mounting auth routes at /api/auth');
+console.log('🔓 Register route should be PUBLIC (no auth)');
 app.use('/api/auth', authRoutes);
+console.log('🔓 Auth routes mounted successfully');
 app.use('/api/employees', employeeRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/leaves', leaveRoutes);
@@ -103,6 +107,32 @@ allowedOrigins.forEach(origin => console.log(`   - ${origin}`));
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server is running' });
+});
+
+// Test public endpoint to verify unauthenticated access works
+app.get('/api/test-public', (req, res) => {
+  console.log('✅ Public test endpoint accessed - no auth required');
+  res.json({ 
+    message: 'This is a public endpoint - no auth required',
+    timestamp: new Date().toISOString(),
+    serverTime: new Date().toLocaleString()
+  });
+});
+
+// Version endpoint to verify deployed code
+app.get('/api/version', (req, res) => {
+  res.json({ 
+    version: '2.0.0-register-public',
+    message: 'Register endpoint is PUBLIC',
+    timestamp: new Date().toISOString(),
+    routes: {
+      register: 'PUBLIC - no auth required',
+      login: 'PUBLIC - no auth required',
+      registerFirst: 'PUBLIC - no auth required',
+      registerAdmin: 'PROTECTED - requires admin/hr_executive token',
+      users: 'PROTECTED - requires admin/hr_executive token'
+    }
+  });
 });
 
 // 404 handler for API routes (must be after all route registrations)
