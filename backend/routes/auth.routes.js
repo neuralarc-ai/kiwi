@@ -6,6 +6,9 @@ const router = express.Router();
 
 router.post('/login', login);
 // Public registration - anyone can create an account (no auth required)
+// IMPORTANT: This route MUST remain public (no authenticate middleware)
+// Mobile users and new users need to be able to register without a token
+// DO NOT add authenticate middleware to this route
 router.post('/register', register);
 // Allow Admin/HR self-registration (no auth required) - kept for backward compatibility
 router.post('/register-first', registerFirstUser);

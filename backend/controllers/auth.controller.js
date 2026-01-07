@@ -50,6 +50,9 @@ export const register = async (req, res) => {
     console.log('📥 Request body:', JSON.stringify(req.body));
     console.log('📥 Request headers:', JSON.stringify(req.headers));
     console.log('📥 Content-Type:', req.headers['content-type']);
+    console.log('📥 Has Authorization header:', !!req.headers.authorization);
+    console.log('📥 Has req.user:', !!req.user);
+    console.log('📥 req.user:', req.user);
     
     const { email, password, role } = req.body;
     
