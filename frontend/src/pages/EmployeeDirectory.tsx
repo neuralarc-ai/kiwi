@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { Search, UserPlus, Edit, Trash2, ChevronDown } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -22,7 +22,6 @@ export default function EmployeeDirectory() {
   const [selectedDepartment, setSelectedDepartment] = useState('All')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null)
-  const [selectedEmployees, setSelectedEmployees] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     fetchEmployees()
@@ -128,36 +127,6 @@ export default function EmployeeDirectory() {
     const date = new Date(dateString)
     return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
   }
-
-  // Select All functionality
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      const allIds = new Set(filteredEmployees.map(emp => emp.id))
-      setSelectedEmployees(allIds)
-    } else {
-      setSelectedEmployees(new Set())
-    }
-  }
-
-  const handleSelectEmployee = (employeeId: number, checked: boolean) => {
-    const newSelected = new Set(selectedEmployees)
-    if (checked) {
-      newSelected.add(employeeId)
-    } else {
-      newSelected.delete(employeeId)
-    }
-    setSelectedEmployees(newSelected)
-  }
-
-  const isAllSelected = filteredEmployees.length > 0 && filteredEmployees.every(emp => selectedEmployees.has(emp.id))
-  const isIndeterminate = selectedEmployees.size > 0 && !isAllSelected
-  const selectAllCheckboxRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    if (selectAllCheckboxRef.current) {
-      selectAllCheckboxRef.current.indeterminate = isIndeterminate
-    }
-  }, [isIndeterminate])
 
   return (
     <>
