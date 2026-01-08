@@ -377,7 +377,7 @@ export default function SettingsPage() {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="border border-border rounded-lg p-3 bg-muted/50"
+                className="rounded-lg p-3"
               >
                 <form onSubmit={handlePasswordSubmit} className="space-y-4">
                   <div className="space-y-2 max-w-md">
@@ -694,11 +694,11 @@ export default function SettingsPage() {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="border border-border rounded-lg p-3 bg-muted/50"
+                  className="rounded-lg p-3"
                 >
                   <form onSubmit={handleAddUsers} className="space-y-4">
                     {users.map((userData, index) => (
-                      <div key={index} className="space-y-3 p-3 border border-border rounded-lg bg-background/50">
+                      <div key={index} className="space-y-3 p-3 rounded-lg">
                         <div className="flex items-center justify-between mb-2">
                           <h4 className="text-sm font-semibold">User {index + 1}</h4>
                           {users.length > 1 && (
