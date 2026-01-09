@@ -984,7 +984,7 @@ export default function DashboardHome() {
                 Monthly Comparison
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 pb-0">
+            <CardContent className="flex-1 pb-4">
               {loadingAccounting ? (
                 <div className="h-[300px] flex items-center justify-center">
                   <Skeleton className="h-full w-full rounded-md" />
@@ -992,7 +992,7 @@ export default function DashboardHome() {
               ) : (
                 <div className="flex flex-col h-[300px]">
                   {/* Upper Section - Data Rows */}
-                  <div className="flex-1 flex flex-col divide-y divide-gray-200 dark:divide-gray-700 overflow-y-auto">
+                  <div className="flex flex-col divide-y divide-gray-200 dark:divide-gray-700 overflow-y-auto flex-1 min-h-0" style={{ maxHeight: 'calc(100% - 60px)' }}>
                     {/* Current Month Total */}
                     <div className="flex items-center justify-between py-2.5 px-3 flex-shrink-0">
                       <span className="font-medium text-sm text-gray-700 dark:text-gray-300">Current Month Total</span>
@@ -1052,10 +1052,11 @@ export default function DashboardHome() {
 
                   {/* Lower Section - Total Change */}
                   <div 
-                    className="p-2.5 rounded-lg mt-2 flex-shrink-0"
+                    className="p-2.5 rounded-lg mt-3 flex-shrink-0"
                     style={{ 
                       backgroundColor: paletteColors.present,
-                      color: 'white'
+                      color: 'white',
+                      height: '50px'
                     }}
                   >
                     <div className="flex items-center justify-between">

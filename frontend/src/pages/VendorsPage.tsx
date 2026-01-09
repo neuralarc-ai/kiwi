@@ -12,7 +12,8 @@ import {
   Loader2,
   Plus,
   Calculator,
-  ChevronDown
+  ChevronDown,
+  Trash2
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { apiService } from '@/services/api'
@@ -240,6 +241,19 @@ export default function VendorsPage() {
     }
   }
 
+  const handleDeleteEntry = async (entryId: number) => {
+    if (!token) return
+
+    try {
+      await apiService.deleteAccountingEntry(token, entryId)
+      toast.success('Vendor entry deleted successfully')
+      await fetchAccountingData()
+    } catch (err: any) {
+      console.error('Error deleting entry:', err)
+      toast.error(err?.message || 'Failed to delete vendor entry')
+    }
+  }
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -332,6 +346,9 @@ export default function VendorsPage() {
                   <th className="text-center p-3 font-semibold text-sm w-24">GST/Tax %</th>
                   <th className="text-left p-3 pl-6 font-semibold text-sm">Remarks</th>
                   <th className="text-right p-3 font-semibold text-sm">Amount (₹)</th>
+                  {(user?.role === 'admin' || user?.role === 'hr_executive') && (
+                    <th className="text-center p-3 font-semibold text-sm w-16">Action</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -380,6 +397,18 @@ export default function VendorsPage() {
                           )}
                         </div>
                       </td>
+                      {(user?.role === 'admin' || user?.role === 'hr_executive') && (
+                        <td className="p-3 text-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteEntry(entry.id)}
+                            className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </td>
+                      )}
                     </tr>
                   )
                 })}
@@ -390,6 +419,9 @@ export default function VendorsPage() {
                     Total:
                   </td>
                   <td className="p-3 text-sm text-right">{formatCurrency(total)}</td>
+                  {(user?.role === 'admin' || user?.role === 'hr_executive') && (
+                    <td className="p-3"></td>
+                  )}
                 </tr>
               </tfoot>
             </table>
@@ -462,7 +494,11 @@ export default function VendorsPage() {
             {(user?.role === 'admin' || user?.role === 'hr_executive') && (
               <Dialog open={isAddEntryDialogOpen} onOpenChange={setIsAddEntryDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="default" className="gap-2">
+                  <Button 
+                    variant="default" 
+                    className="gap-2" 
+                    style={{ backgroundColor: '#000000', color: '#ffffff' }}
+                  >
                     <Plus className="h-4 w-4" />
                     Add Vendor
                   </Button>
@@ -482,6 +518,7 @@ export default function VendorsPage() {
                         value={newEntry.head}
                         onChange={(e) => setNewEntry({ ...newEntry, head: e.target.value })}
                         placeholder="e.g., Office Rent, Electricity Bill, Internet Service"
+                        className="placeholder:opacity-40"
                         required
                       />
                     </div>
@@ -493,6 +530,7 @@ export default function VendorsPage() {
                         value={newEntry.subhead}
                         onChange={(e) => setNewEntry({ ...newEntry, subhead: e.target.value })}
                         placeholder="e.g., Main Office, Branch Office"
+                        className="placeholder:opacity-40"
                       />
                     </div>
 
@@ -507,6 +545,7 @@ export default function VendorsPage() {
                         value={newEntry.gstPercentage}
                         onChange={(e) => setNewEntry({ ...newEntry, gstPercentage: e.target.value })}
                         placeholder="0"
+                        className="placeholder:opacity-40"
                       />
                     </div>
 
@@ -535,6 +574,7 @@ export default function VendorsPage() {
                         value={newEntry.remarks}
                         onChange={(e) => setNewEntry({ ...newEntry, remarks: e.target.value })}
                         placeholder="Additional notes about this vendor"
+                        className="placeholder:opacity-40"
                       />
                     </div>
 
@@ -569,7 +609,13 @@ export default function VendorsPage() {
                     >
                       Cancel
                     </Button>
-                    <Button onClick={handleAddEntry} disabled={isCreatingEntry || !newEntry.head}>
+                    <Button 
+                      onClick={handleAddEntry} 
+                      disabled={isCreatingEntry || !newEntry.head}
+                      variant="default"
+                      className="!bg-black !text-white hover:!bg-gray-800 disabled:!bg-black disabled:!opacity-50"
+                      style={{ backgroundColor: '#000000', color: '#ffffff' }}
+                    >
                       {isCreatingEntry ? (
                         <>
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -639,6 +685,9 @@ export default function VendorsPage() {
                         <th className="text-center p-3 font-semibold text-sm w-24">GST/Tax %</th>
                         <th className="text-left p-3 pl-6 font-semibold text-sm">Remarks</th>
                         <th className="text-right p-3 font-semibold text-sm">Amount (₹)</th>
+                        {(user?.role === 'admin' || user?.role === 'hr_executive') && (
+                          <th className="text-center p-3 font-semibold text-sm w-16">Action</th>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
@@ -687,6 +736,18 @@ export default function VendorsPage() {
                                 )}
                               </div>
                             </td>
+                            {(user?.role === 'admin' || user?.role === 'hr_executive') && (
+                              <td className="p-3 text-center">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteEntry(entry.id)}
+                                  className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </td>
+                            )}
                           </tr>
                         )
                       })}
@@ -705,6 +766,9 @@ export default function VendorsPage() {
                             }, 0)
                           )}
                         </td>
+                        {(user?.role === 'admin' || user?.role === 'hr_executive') && (
+                          <td className="p-3"></td>
+                        )}
                       </tr>
                     </tfoot>
                   </table>

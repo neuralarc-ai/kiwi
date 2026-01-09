@@ -5,7 +5,6 @@ import {
   getLeaves,
   getLeave,
   approveLeave,
-  rejectLeave,
   getEmployeeLeaves,
 } from '../controllers/leave.controller.js';
 
@@ -28,9 +27,6 @@ router.get('/employee/:employeeId', getEmployeeLeaves);
 
 // Approve leave (Admin only)
 router.put('/:id/approve', authorize('admin'), approveLeave);
-
-// Reject leave (Admin only)
-router.put('/:id/reject', authorize('admin'), rejectLeave);
 
 export default router;
 

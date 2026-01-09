@@ -6,6 +6,7 @@ import {
   initializeAccountingEntries,
   createAccountingEntry,
   syncSalaryFromPayroll,
+  deleteAccountingEntry,
 } from '../controllers/accounting.controller.js'
 
 const router = express.Router()
@@ -28,6 +29,9 @@ router.post('/', authorize('admin', 'hr_executive'), createAccountingEntry)
 
 // Update accounting amount
 router.put('/:id', authorize('admin', 'hr_executive'), updateAccountingAmount)
+
+// Delete accounting entry
+router.delete('/:id', authorize('admin', 'hr_executive'), deleteAccountingEntry)
 
 // Sync salary from payroll
 router.get('/sync-salary', authenticate, syncSalaryFromPayroll)

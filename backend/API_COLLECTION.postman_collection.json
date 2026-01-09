@@ -1,0 +1,573 @@
+{
+  "info": {
+    "name": "HR Management System API",
+    "description": "Complete API collection for HR Management System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "hr-management-api"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://kiwi-backend-299314838732.asia-south1.run.app/api",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('token', jsonData.token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"hr_executive\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Register First User",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register-first",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register-first"]
+            }
+          }
+        },
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{base_url}}/auth/users",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "users"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Employees",
+      "item": [
+        {
+          "name": "Get All Employees",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{base_url}}/employees",
+              "host": ["{{base_url}}"],
+              "path": ["employees"]
+            }
+          }
+        },
+        {
+          "name": "Get Employee by ID",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{base_url}}/employees/:id",
+              "host": ["{{base_url}}"],
+              "path": ["employees", ":id"],
+              "variable": [{"key": "id", "value": "1"}]
+            }
+          }
+        },
+        {
+          "name": "Create Employee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee_id\": \"EMP001\",\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"department\": \"Engineering\",\n  \"position\": \"Software Engineer\",\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/employees",
+              "host": ["{{base_url}}"],
+              "path": ["employees"]
+            }
+          }
+        },
+        {
+          "name": "Update Employee",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Jane\",\n  \"department\": \"Marketing\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/employees/:id",
+              "host": ["{{base_url}}"],
+              "path": ["employees", ":id"],
+              "variable": [{"key": "id", "value": "1"}]
+            }
+          }
+        },
+        {
+          "name": "Delete Employee",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{base_url}}/employees/:id",
+              "host": ["{{base_url}}"],
+              "path": ["employees", ":id"],
+              "variable": [{"key": "id", "value": "1"}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Attendance",
+      "item": [
+        {
+          "name": "Mark Attendance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee_id\": 1,\n  \"date\": \"2024-01-15\",\n  \"status\": \"present\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/attendance",
+              "host": ["{{base_url}}"],
+              "path": ["attendance"]
+            }
+          }
+        },
+        {
+          "name": "Get Employees with Attendance",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{base_url}}/attendance/employees?date=2024-01-15",
+              "host": ["{{base_url}}"],
+              "path": ["attendance", "employees"],
+              "query": [{"key": "date", "value": "2024-01-15"}]
+            }
+          }
+        },
+        {
+          "name": "Get Monthly Attendance",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{base_url}}/attendance/monthly/:year/:month",
+              "host": ["{{base_url}}"],
+              "path": ["attendance", "monthly", ":year", ":month"],
+              "variable": [
+                {"key": "year", "value": "2024"},
+                {"key": "month", "value": "1"}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Leaves",
+      "item": [
+        {
+          "name": "Apply for Leave",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee_id\": 1,\n  \"leave_type\": \"sick\",\n  \"start_date\": \"2024-01-20\",\n  \"end_date\": \"2024-01-22\",\n  \"reason\": \"Medical appointment\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/leaves",
+              "host": ["{{base_url}}"],
+              "path": ["leaves"]
+            }
+          }
+        },
+        {
+          "name": "Get All Leaves",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{base_url}}/leaves",
+              "host": ["{{base_url}}"],
+              "path": ["leaves"]
+            }
+          }
+        },
+        {
+          "name": "Approve Leave",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{base_url}}/leaves/:id/approve",
+              "host": ["{{base_url}}"],
+              "path": ["leaves", ":id", "approve"],
+              "variable": [{"key": "id", "value": "1"}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payroll",
+      "item": [
+        {
+          "name": "Get All Payrolls",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{base_url}}/payroll?month=1&year=2024",
+              "host": ["{{base_url}}"],
+              "path": ["payroll"],
+              "query": [
+                {"key": "month", "value": "1"},
+                {"key": "year", "value": "2024"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Payroll",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee_id\": 1,\n  \"month\": 1,\n  \"year\": 2024,\n  \"basic_salary\": 50000,\n  \"allowances\": 5000,\n  \"deductions\": 2000,\n  \"net_salary\": 47000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payroll",
+              "host": ["{{base_url}}"],
+              "path": ["payroll"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{base_url}}/dashboard/stats",
+              "host": ["{{base_url}}"],
+              "path": ["dashboard", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Get Attendance Stats",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{base_url}}/dashboard/attendance-stats?days=7",
+              "host": ["{{base_url}}"],
+              "path": ["dashboard", "attendance-stats"],
+              "query": [{"key": "days", "value": "7"}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Recruitment",
+      "item": [
+        {
+          "name": "Get Job Postings",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{base_url}}/recruitment",
+              "host": ["{{base_url}}"],
+              "path": ["recruitment"]
+            }
+          }
+        },
+        {
+          "name": "Create Job Posting",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Senior Software Engineer\",\n  \"department\": \"Engineering\",\n  \"location\": \"Remote\",\n  \"type\": \"Full-time\",\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/recruitment",
+              "host": ["{{base_url}}"],
+              "path": ["recruitment"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Performance",
+      "item": [
+        {
+          "name": "Get Monthly Performance",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{base_url}}/performance/monthly?month=1&year=2024",
+              "host": ["{{base_url}}"],
+              "path": ["performance", "monthly"],
+              "query": [
+                {"key": "month", "value": "1"},
+                {"key": "year", "value": "2024"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Performance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee_id\": 1,\n  \"month\": 1,\n  \"year\": 2024,\n  \"rating\": 4.5,\n  \"goals_achieved\": 8,\n  \"goals_total\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/performance",
+              "host": ["{{base_url}}"],
+              "path": ["performance"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "item": [
+        {
+          "name": "Get All Settings",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{base_url}}/settings",
+              "host": ["{{base_url}}"],
+              "path": ["settings"]
+            }
+          }
+        },
+        {
+          "name": "Update Setting",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": \"New Company Name\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/settings/:key",
+              "host": ["{{base_url}}"],
+              "path": ["settings", ":key"],
+              "variable": [{"key": "key", "value": "company_name"}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Accounting",
+      "item": [
+        {
+          "name": "Get Accounting Data",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{base_url}}/accounting?month=1&year=2024",
+              "host": ["{{base_url}}"],
+              "path": ["accounting"],
+              "query": [
+                {"key": "month", "value": "1"},
+                {"key": "year", "value": "2024"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Accounting Entry",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"head\": \"Salary\",\n  \"amount\": 500000,\n  \"month\": 1,\n  \"year\": 2024\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/accounting",
+              "host": ["{{base_url}}"],
+              "path": ["accounting"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Get Employee Report",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{base_url}}/reports/employees",
+              "host": ["{{base_url}}"],
+              "path": ["reports", "employees"]
+            }
+          }
+        },
+        {
+          "name": "Get Attendance Report",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{base_url}}/reports/attendance?start_date=2024-01-01&end_date=2024-01-31",
+              "host": ["{{base_url}}"],
+              "path": ["reports", "attendance"],
+              "query": [
+                {"key": "start_date", "value": "2024-01-01"},
+                {"key": "end_date", "value": "2024-01-31"}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health & Info",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "Version Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/version",
+              "host": ["{{base_url}}"],
+              "path": ["version"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+

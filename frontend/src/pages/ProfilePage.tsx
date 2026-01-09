@@ -35,7 +35,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="space-y-6 overflow-x-hidden max-w-full">
+    <div className="w-full space-y-6 overflow-x-hidden">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -50,19 +50,21 @@ export default function ProfilePage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <Card variant="glass">
+          <Card variant="glass" className="max-w-2xl">
           <CardHeader>
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-white font-bold text-xl sm:text-2xl flex-shrink-0">
                 {user?.email?.charAt(0).toUpperCase() || 'U'}
               </div>
               <div className="flex-1 min-w-0">
-                <CardTitle className="text-lg sm:text-xl md:text-2xl mb-1 sm:mb-2">User Profile</CardTitle>
+                <div className="flex flex-wrap items-center gap-2 mb-1 sm:mb-2">
+                  <CardTitle className="text-lg sm:text-xl md:text-2xl">User Profile</CardTitle>
+                  <Badge className={cn("flex-shrink-0", getRoleBadgeColor(user?.role))}>
+                    {getRoleLabel(user?.role)}
+                  </Badge>
+                </div>
                 <CardDescription className="text-xs sm:text-sm">Your account information and details</CardDescription>
               </div>
-              <Badge className={cn("flex-shrink-0", getRoleBadgeColor(user?.role))}>
-                {getRoleLabel(user?.role)}
-              </Badge>
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -117,7 +119,7 @@ export default function ProfilePage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <Card variant="glass">
+        <Card variant="glass" className="max-w-2xl">
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
             <CardDescription>Manage your account settings</CardDescription>

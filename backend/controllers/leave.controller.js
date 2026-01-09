@@ -201,38 +201,3 @@ export const approveLeave = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-
-// Reject leave (Admin only)
-export const rejectLeave = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { rejection_reason } = req.body;
-    const userId = req.user.id;
-
-    const leave = await pool.query('SELECT * FROM leaves WHERE id = $1', [id]);
-    if (leave.rows.length === 0) {
-      return res.status(404).json({ message: 'Leave not found' });
-    }
-
-    const previousLeave = leave.rows[0];
-
-    const result = await pool.query(
-      `UPDATE leaves SET status = 'rejected', approved_by = $1, approved_at = CURRENT_TIMESTAMP, rejection_reason = $2
-       WHERE id = $3
-       RETURNING *`,
-      [userId, rejection_reason || null, id]
-    );
-
-    const updatedLeave = result.rows[0];
-
-    // If leave was previously approved and now rejected, recalculate payroll
-    if (previousLeave.status === 'approved') {
-      await recalculatePayrollForLeave(updatedLeave.employee_id, updatedLeave.start_date, updatedLeave.end_date);
-    }
-
-    res.json(updatedLeave);
-  } catch (error) {
-    console.error('Reject leave error:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-};

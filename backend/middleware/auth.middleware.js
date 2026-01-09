@@ -55,12 +55,29 @@ export const authenticate = (req, res, next) => {
       return res.status(401).json({ message: 'No token provided' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Use same JWT_SECRET fallback as login function
+    const jwtSecret = process.env.JWT_SECRET || 'b127e4004408c1a8a1df26d15d9e7be3';
+    
+    if (!jwtSecret) {
+      console.error('❌ JWT_SECRET is not configured in middleware!');
+      return res.status(500).json({ message: 'Server configuration error: JWT_SECRET not set' });
+    }
+
+    const decoded = jwt.verify(token, jwtSecret);
     req.user = decoded;
     console.log('✅ User authenticated:', { id: decoded.id, email: decoded.email, role: decoded.role });
     next();
   } catch (error) {
     console.error('❌ Token verification failed:', error.message);
+    console.error('❌ Error type:', error.name);
+    
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Token expired' });
+    }
+    
     return res.status(401).json({ message: 'Invalid or expired token' });
   }
 };

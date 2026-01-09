@@ -59,12 +59,25 @@ export const initializeDatabase = async () => {
         id SERIAL PRIMARY KEY,
         email VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
-        role VARCHAR(50) NOT NULL CHECK (role IN ('admin', 'hr_executive', 'employee')),
+        role VARCHAR(50) NOT NULL CHECK (role IN ('admin', 'hr_executive', 'employee', 'accountant')),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
     
-    // Update existing table constraint to allow 'employee' role
+    // Password reset tokens table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        token VARCHAR(255) UNIQUE NOT NULL,
+        expires_at TIMESTAMP NOT NULL,
+        used BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('✅ Password reset tokens table created/verified');
+    
+    // Update existing table constraint to allow all roles including 'accountant'
     try {
       // First, try to drop any existing role constraint
       await pool.query(`
@@ -79,12 +92,12 @@ export const initializeDatabase = async () => {
         END $$;
       `);
       
-      // Add new constraint that allows all three roles
+      // Add new constraint that allows all roles including accountant
       await pool.query(`
         ALTER TABLE users ADD CONSTRAINT users_role_check 
-        CHECK (role IN ('admin', 'hr_executive', 'employee'));
+        CHECK (role IN ('admin', 'hr_executive', 'employee', 'accountant'));
       `);
-      console.log('✅ Updated users table constraint to allow employee role');
+      console.log('✅ Updated users table constraint to allow all roles including accountant');
     } catch (constraintError) {
       // If constraint already exists with correct values, that's fine
       if (constraintError.code === '42710' || constraintError.message?.includes('already exists')) {
@@ -122,10 +135,105 @@ export const initializeDatabase = async () => {
         address TEXT,
         employee_type VARCHAR(50) DEFAULT 'Employee',
         status VARCHAR(20) DEFAULT 'active',
+        bank_details_url VARCHAR(500),
+        pan_card_url VARCHAR(500),
+        aadhar_card_url VARCHAR(500),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Add document columns if they don't exist (for existing databases)
+    try {
+      await pool.query(`
+        DO $$ 
+        BEGIN
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'bank_details_url') THEN
+            ALTER TABLE employees ADD COLUMN bank_details_url VARCHAR(500);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'pan_card_url') THEN
+            ALTER TABLE employees ADD COLUMN pan_card_url VARCHAR(500);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'aadhar_card_url') THEN
+            ALTER TABLE employees ADD COLUMN aadhar_card_url VARCHAR(500);
+          END IF;
+          
+          -- Add OCR extracted data columns
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'bank_account_no') THEN
+            ALTER TABLE employees ADD COLUMN bank_account_no VARCHAR(50);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'bank_name') THEN
+            ALTER TABLE employees ADD COLUMN bank_name VARCHAR(200);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'bank_ifsc') THEN
+            ALTER TABLE employees ADD COLUMN bank_ifsc VARCHAR(20);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'bank_verified') THEN
+            ALTER TABLE employees ADD COLUMN bank_verified BOOLEAN DEFAULT FALSE;
+          END IF;
+          
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'pan_number') THEN
+            ALTER TABLE employees ADD COLUMN pan_number VARCHAR(20);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'pan_verified') THEN
+            ALTER TABLE employees ADD COLUMN pan_verified BOOLEAN DEFAULT FALSE;
+          END IF;
+          
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'aadhar_number') THEN
+            ALTER TABLE employees ADD COLUMN aadhar_number VARCHAR(20);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'aadhar_verified') THEN
+            ALTER TABLE employees ADD COLUMN aadhar_verified BOOLEAN DEFAULT FALSE;
+          END IF;
+          
+          -- Add verification system fields
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'pan_name') THEN
+            ALTER TABLE employees ADD COLUMN pan_name VARCHAR(200);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'pan_dob') THEN
+            ALTER TABLE employees ADD COLUMN pan_dob VARCHAR(20);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'aadhar_name') THEN
+            ALTER TABLE employees ADD COLUMN aadhar_name VARCHAR(200);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'aadhar_dob') THEN
+            ALTER TABLE employees ADD COLUMN aadhar_dob VARCHAR(20);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'bank_account_holder_name') THEN
+            ALTER TABLE employees ADD COLUMN bank_account_holder_name VARCHAR(200);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'verification_score') THEN
+            ALTER TABLE employees ADD COLUMN verification_score INTEGER DEFAULT 0;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'verification_status') THEN
+            ALTER TABLE employees ADD COLUMN verification_status VARCHAR(50) DEFAULT 'pending';
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'verification_flags') THEN
+            ALTER TABLE employees ADD COLUMN verification_flags JSONB;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'hr_approved') THEN
+            ALTER TABLE employees ADD COLUMN hr_approved BOOLEAN DEFAULT FALSE;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'hr_approved_by') THEN
+            ALTER TABLE employees ADD COLUMN hr_approved_by INTEGER REFERENCES users(id);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'hr_approved_at') THEN
+            ALTER TABLE employees ADD COLUMN hr_approved_at TIMESTAMP;
+          END IF;
+          
+          -- Add emergency contact fields
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'emergency_contact_relation') THEN
+            ALTER TABLE employees ADD COLUMN emergency_contact_relation VARCHAR(50);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'emergency_contact') THEN
+            ALTER TABLE employees ADD COLUMN emergency_contact VARCHAR(20);
+          END IF;
+        END $$;
+      `);
+      console.log('✅ Document columns and OCR fields verified/added to employees table');
+    } catch (error) {
+      console.warn('⚠️ Could not add document columns (may already exist):', error.message);
+    }
 
     // Attendance table
     await pool.query(`

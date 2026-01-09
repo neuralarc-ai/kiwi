@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider } from './contexts/ThemeContext'
 import { AuthProvider, ProtectedRoute } from './contexts/AuthContext'
 import LoginPage from './pages/LoginPage'
-import RegisterPage from './pages/RegisterPage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 import DashboardLayout from './layouts/DashboardLayout'
 import DashboardHome from './pages/DashboardHome'
 import EmployeeDirectory from './pages/EmployeeDirectory'
@@ -25,7 +25,7 @@ function App() {
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/home" element={<Navigate to="/login" replace />} />
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route
               path="/dashboard"
               element={

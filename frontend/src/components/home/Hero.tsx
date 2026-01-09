@@ -57,11 +57,6 @@ export default function Hero() {
                 <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={20} />
               </Button>
             </Link>
-            <Link to="/register">
-              <Button size="lg" variant="outline">
-                Sign Up Free
-              </Button>
-            </Link>
           </motion.div>
 
           {/* Feature Icons */}

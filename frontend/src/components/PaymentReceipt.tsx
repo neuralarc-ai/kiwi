@@ -88,18 +88,20 @@ export default function PaymentReceipt({ payroll, employeeName, onDownload }: Pa
   const grossSalary = actualBasicSalary + allowances
   
   // Use TDS from backend (already calculated correctly by backend)
-  // Backend calculates TDS as 10% of gross salary (basic + allowances)
+  // Backend calculates TDS as exactly the configured percentage (default 10%) of basic salary only (not gross)
   const tdsAmount = toNumber(payroll.tds)
   
   // Use leave deduction from backend (already calculated correctly by backend)
   // Leave deduction is only applied if employee takes more than 2 leaves
   const leaveDeductionAmount = toNumber(payroll.leave_deduction)
   
-  // Total deductions = TDS + Leave Deduction only (no other deductions)
-  const totalDeductions = tdsAmount + leaveDeductionAmount
+  // Use total deductions from backend (already calculated correctly by backend)
+  // This includes TDS + Leave Deduction + any other deductions
+  const totalDeductions = toNumber(payroll.deductions)
   
-  // Calculate net salary = Gross Salary - Total Deductions
-  const netSalary = grossSalary - totalDeductions
+  // Use net salary from backend (already calculated correctly by backend)
+  // Net salary = Gross Salary - Total Deductions
+  const netSalary = toNumber(payroll.net_salary)
 
   // Get working days and leaves (assuming 22 working days per month, can be adjusted)
   const workingDays = 22

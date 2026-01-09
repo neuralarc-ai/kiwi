@@ -6,7 +6,6 @@ interface AuthContextType {
   isAuthenticated: boolean
   login: (email: string, password: string) => Promise<boolean>
   logout: () => void
-  register: (data: { email: string; password: string; role: string; first_name?: string; last_name?: string; phone?: string; department?: string; position?: string; address?: string }) => Promise<boolean>
   user: { id: number; email: string; role: string } | null
   token: string | null
   loading: boolean
@@ -87,32 +86,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const register = async (data: { email: string; password: string; role?: string; first_name?: string; last_name?: string; phone?: string; department?: string; position?: string; address?: string }): Promise<boolean> => {
-    try {
-      setLoading(true)
-      // Public registration - no role needed, defaults to 'hr_executive'
-      const response = await apiService.register(data)
-      
-      // Note: Public registration doesn't return a token, user needs to login
-      // Only register-first endpoint returns token for auto-login
-      if (response.token && response.user) {
-        setToken(response.token)
-        setUser(response.user)
-        setIsAuthenticated(true)
-        localStorage.setItem('token', response.token)
-        localStorage.setItem('user', JSON.stringify(response.user))
-        return true
-      }
-      // Account created successfully, but no auto-login
-      return true
-    } catch (error: any) {
-      console.error('Register error:', error)
-      throw error // Re-throw so RegisterPage can handle it
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const logout = () => {
     setIsAuthenticated(false)
     setUser(null)
@@ -123,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout, register, user, token, loading }}>
+    <AuthContext.Provider value={{ isAuthenticated, login, logout, user, token, loading }}>
       {children}
     </AuthContext.Provider>
   )

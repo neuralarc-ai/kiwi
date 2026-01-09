@@ -1,18 +1,22 @@
 import { motion } from 'framer-motion'
-import { LogIn, Sparkles } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { LogIn } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useAuth } from '@/contexts/AuthContext'
+import { useTheme } from '@/contexts/ThemeContext'
+import ForgotPasswordModal from '@/components/ForgotPasswordModal'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
   const { login } = useAuth()
+  const { theme } = useTheme()
   const navigate = useNavigate()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,12 +77,21 @@ export default function LoginPage() {
             className="text-center mb-8"
           >
             <motion.div
-              animate={{ rotate: [0, 360] }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5 }}
               className="inline-block mb-4"
             >
-              <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center">
-                <Sparkles className="text-white" size={32} />
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-white dark:bg-black p-1.5 flex items-center justify-center shadow-lg">
+                <img
+                  src={theme === 'dark' ? "/logo/logo1.png" : "/logo/logo.png"}
+                  alt="KIWI Logo"
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    console.error('Logo image failed to load')
+                    e.currentTarget.style.display = 'none'
+                  }}
+                />
               </div>
             </motion.div>
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 gradient-text">KIWI</h1>
@@ -104,7 +117,7 @@ export default function LoginPage() {
                 variant="glass"
                 type="email"
                 placeholder="Enter your email"
-                className="w-full"
+                className="w-full placeholder:opacity-50"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -117,7 +130,7 @@ export default function LoginPage() {
                 variant="glass"
                 type="password"
                 placeholder="••••••••"
-                className="w-full"
+                className="w-full placeholder:opacity-50"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -129,9 +142,13 @@ export default function LoginPage() {
                 <input type="checkbox" className="rounded" />
                 <span className="text-muted-foreground">Remember me</span>
               </label>
-              <a href="#" className="text-black dark:text-white hover:opacity-80 transition-colors">
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(true)}
+                className="text-black dark:text-white hover:opacity-80 transition-colors"
+              >
                 Forgot password?
-              </a>
+              </button>
             </div>
 
             <Button type="submit" className="w-full" size="lg" disabled={loading}>
@@ -139,20 +156,12 @@ export default function LoginPage() {
               {loading ? 'Signing In...' : 'Sign In'}
             </Button>
           </motion.form>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="mt-6 text-center text-sm text-muted-foreground"
-          >
-            Don't have an account?{' '}
-            <Link to="/register" className="text-black dark:text-white hover:opacity-80 transition-colors">
-              Sign Up
-            </Link>
-          </motion.div>
         </Card>
       </motion.div>
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+      />
     </div>
   )
 }

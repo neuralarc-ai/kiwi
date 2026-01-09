@@ -23,11 +23,11 @@ import { cn } from '@/lib/utils'
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-  { icon: Users, label: 'Employees', path: '/dashboard/employees' },
   { icon: Calendar, label: 'Attendance', path: '/dashboard/attendance' },
   { icon: Briefcase, label: 'Recruitment', path: '/dashboard/recruitment' },
   { icon: DollarSign, label: 'Payroll Management', path: '/dashboard/payroll' },
   { icon: Building2, label: 'Vendors', path: '/dashboard/vendors' },
+  { icon: Users, label: 'Employees', path: '/dashboard/employees' },
   { icon: TrendingUp, label: 'Performance', path: '/dashboard/performance' },
   { icon: Calculator, label: 'Account', path: '/dashboard/account' },
   { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
@@ -177,9 +177,9 @@ export default function Sidebar() {
                   >
                     <item.icon 
                       size={
-                        isMobile ? 22 
-                        : isCollapsed ? 24 
-                        : 24
+                        isMobile ? 18 
+                        : isCollapsed ? 20 
+                        : 20
                       } 
                       className={cn(
                         "transition-transform",
@@ -235,9 +235,9 @@ export default function Sidebar() {
             aria-label="Toggle theme"
           >
             {theme === 'light' ? (
-              <Sun size={isMobile ? 22 : isCollapsed ? 24 : 24} />
+              <Sun size={isMobile ? 18 : isCollapsed ? 20 : 20} />
             ) : (
-              <Moon size={isMobile ? 22 : isCollapsed ? 24 : 24} />
+              <Moon size={isMobile ? 18 : isCollapsed ? 20 : 20} />
             )}
             {(!isCollapsed || isMobile) && (
               <span className="text-sm font-medium">
@@ -255,7 +255,7 @@ export default function Sidebar() {
             )}
           >
             <LogOut 
-              size={isMobile ? 22 : isCollapsed ? 24 : 24} 
+              size={isMobile ? 18 : isCollapsed ? 20 : 20} 
               style={{ color: 'hsl(var(--palette-red-orange))' }}
             />
             {(!isCollapsed || isMobile) && (

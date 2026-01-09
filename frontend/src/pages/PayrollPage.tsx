@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Search, X, ChevronDown } from 'lucide-react'
+import { Search, X, ChevronDown, List, Grid, DollarSign, Calendar, MoreVertical } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
@@ -10,9 +10,12 @@ import { useAuth } from '@/contexts/AuthContext'
 import { apiService, type Payroll } from '@/services/api'
 import PaymentReceipt from '@/components/PaymentReceipt'
 import { useToast, ToastContainer } from '@/components/ui/toast'
+import { useTheme } from '@/contexts/ThemeContext'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 
 export default function PayrollPage() {
   const { user, token } = useAuth()
+  const { theme } = useTheme()
   const toast = useToast()
   const [payrolls, setPayrolls] = useState<Payroll[]>([])
   const [loading, setLoading] = useState(true)
@@ -22,6 +25,7 @@ export default function PayrollPage() {
   const [selectedYear] = useState<number>(new Date().getFullYear())
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [selectedEmployeeForReceipt, setSelectedEmployeeForReceipt] = useState<{ payroll: Payroll } | null>(null)
+  const [viewMode, setViewMode] = useState<'list' | 'cards'>('list')
   const isAdmin = user?.role === 'admin' || user?.role === 'hr_executive'
 
   // Debug: Log when selectedEmployeeForReceipt changes
@@ -114,12 +118,20 @@ export default function PayrollPage() {
     }
 
     if (searchQuery) {
-      const query = searchQuery.toLowerCase()
-      filtered = filtered.filter(payroll => 
-        payroll.first_name?.toLowerCase().includes(query) ||
-        payroll.last_name?.toLowerCase().includes(query) ||
-        payroll.emp_id?.toLowerCase().includes(query)
-      )
+      const query = searchQuery.toLowerCase().trim()
+      filtered = filtered.filter(payroll => {
+        // Create full name by combining first and last name
+        const firstName = (payroll.first_name || '').trim().toLowerCase()
+        const lastName = (payroll.last_name || '').trim().toLowerCase()
+        const fullName = `${firstName} ${lastName}`.trim()
+        const empId = (payroll.emp_id || '').trim().toLowerCase()
+        
+        // Check if query matches full name, individual names, or employee ID
+        return fullName.includes(query) ||
+               firstName.includes(query) ||
+               lastName.includes(query) ||
+               empId.includes(query)
+      })
     }
 
     return filtered
@@ -269,37 +281,80 @@ export default function PayrollPage() {
             </div>
           </div>
 
-          {/* Right side - Search */}
+          {/* Right side - Search and View Toggle */}
           <div className="flex items-center gap-2 w-full sm:w-auto">
             {/* Small Search Bar */}
-            <div className="relative flex-1 sm:flex-initial sm:w-[200px]">
+            <div className="relative flex-1 sm:flex-initial sm:w-[200px] min-w-0">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" size={14} />
               <Input
                 variant="glass"
                 placeholder="Search"
-                className="pl-8 pr-3 py-1.5 h-9 text-sm"
+                className="pl-8 pr-3 py-1.5 h-9 text-sm w-full placeholder:opacity-40"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
+            </div>
+            {/* View Toggle Buttons */}
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1 flex-shrink-0">
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className="h-8 px-2 sm:px-3 min-w-[36px]"
+                aria-label="List view"
+              >
+                <List size={16} />
+              </Button>
+              <Button
+                variant={viewMode === 'cards' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('cards')}
+                className="h-8 px-2 sm:px-3 min-w-[36px]"
+                aria-label="Card view"
+              >
+                <Grid size={16} />
+              </Button>
             </div>
           </div>
         </div>
       </Card>
 
-      {/* Table */}
+      {/* Content - List or Cards View */}
+      {loading ? (
+        viewMode === 'list' ? (
       <Card variant="glass" className="overflow-hidden">
         <CardContent className="p-0">
-          {loading ? (
             <div className="p-6 space-y-4">
               {[1, 2, 3, 4, 5].map((i) => (
                 <Skeleton key={i} className="h-16 w-full" />
               ))}
             </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Card key={i} variant="glass">
+                <CardContent className="p-6">
+                  <Skeleton className="h-6 w-3/4 mb-4" />
+                  <Skeleton className="h-4 w-full mb-2" />
+                  <Skeleton className="h-4 w-2/3 mb-4" />
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )
           ) : filteredPayrolls.length === 0 ? (
-            <div className="p-12 text-center">
+        <Card variant="glass">
+          <CardContent className="p-12 text-center">
               <p className="text-muted-foreground">No payments found</p>
-            </div>
-          ) : (
+          </CardContent>
+        </Card>
+      ) : viewMode === 'list' ? (
+        /* List View - Table */
+        <Card variant="glass" className="overflow-hidden">
+          <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -378,14 +433,9 @@ export default function PayrollPage() {
                       <td className="py-4 px-4">
                         <div>
                           {(() => {
-                            // Calculate correct values
-                            const basicSalary = Number(payroll.basic_salary || payroll.salary || 0)
-                            const allowances = Number(payroll.allowances || 0)
-                            const grossSalary = basicSalary + allowances
-                            const tds = Number(payroll.tds || 0)
-                            const leaveDeduction = Number(payroll.leave_deduction || 0)
-                            const totalDeductions = tds + leaveDeduction
-                            const netSalary = grossSalary - totalDeductions
+                            // Use values from backend (already calculated correctly)
+                            const netSalary = Number(payroll.net_salary || 0)
+                            const totalDeductions = Number(payroll.deductions || 0)
                             
                             return (
                               <>
@@ -422,9 +472,208 @@ export default function PayrollPage() {
                 </tbody>
               </table>
             </div>
-          )}
         </CardContent>
       </Card>
+      ) : (
+        /* Cards View - Similar to Employee Cards */
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+          {filteredPayrolls.map((payroll, index) => {
+            // Use values from backend (already calculated correctly)
+            const totalDeductions = Number(payroll.deductions || 0)
+            const netSalary = Number(payroll.net_salary || 0)
+
+            // Same gradient combinations as employee cards
+            const gradientVariants = [
+              {
+                light: {
+                  from: 'from-gray-50',
+                  to: 'to-white',
+                  hoverFrom: 'hover:from-blue-50',
+                  hoverTo: 'hover:to-gray-50'
+                },
+                dark: {
+                  from: 'from-[#242424]',
+                  to: 'to-[#020202]',
+                  hoverFrom: 'hover:from-[#182135]',
+                  hoverTo: 'hover:to-[#080808]'
+                }
+              },
+              {
+                light: {
+                  from: 'from-gray-100',
+                  to: 'to-gray-50',
+                  hoverFrom: 'hover:from-purple-50',
+                  hoverTo: 'hover:to-gray-100'
+                },
+                dark: {
+                  from: 'from-[#050a0a]',
+                  to: 'to-[#051818]',
+                  hoverFrom: 'hover:from-[#05070a]',
+                  hoverTo: 'hover:to-[#0b1a3b]'
+                }
+              },
+              {
+                light: {
+                  from: 'from-blue-50',
+                  to: 'to-white',
+                  hoverFrom: 'hover:from-indigo-50',
+                  hoverTo: 'hover:to-blue-50'
+                },
+                dark: {
+                  from: 'from-[#171c35]',
+                  to: 'to-[#000000]',
+                  hoverFrom: 'hover:from-[#2b131e]',
+                  hoverTo: 'hover:to-[#141414]'
+                }
+              }
+            ]
+            const gradient = gradientVariants[index % gradientVariants.length]
+            const isDark = theme === 'dark'
+            
+            // Get gradient style based on theme
+            const getGradientStyle = (from: string, to: string) => {
+              if (isDark) {
+                const fromColor = from.replace('from-[#', '').replace(']', '')
+                const toColor = to.replace('to-[#', '').replace(']', '')
+                return `linear-gradient(to top, #${fromColor}, #${toColor})`
+              }
+              return undefined
+            }
+            
+            const baseGradient = getGradientStyle(gradient.dark.from, gradient.dark.to)
+            const hoverGradient = getGradientStyle(
+              gradient.dark.hoverFrom.replace('hover:from-[#', 'from-[#'),
+              gradient.dark.hoverTo.replace('hover:to-[#', 'to-[#')
+            )
+
+            return (
+              <motion.div
+                key={payroll.employee_id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: index * 0.05 }}
+                className="group h-full"
+              >
+                <div 
+                  className={`bg-gradient-to-t ${gradient.light.from} ${gradient.light.to} ${gradient.light.hoverFrom} ${gradient.light.hoverTo} relative before:absolute before:inset-0 before:opacity-5 rounded-2xl border border-gray-200 dark:border-gray-600/50 transition-all duration-500 ease-in-out h-full flex flex-col overflow-hidden shadow-lg hover:shadow-xl`}
+                  style={isDark ? { background: baseGradient } : undefined}
+                  onMouseEnter={(e) => {
+                    if (isDark && hoverGradient) {
+                      e.currentTarget.style.background = hoverGradient
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (isDark && baseGradient) {
+                      e.currentTarget.style.background = baseGradient
+                    }
+                  }}
+                >
+                  <div className="relative flex flex-col flex-1 p-6 pb-4 z-10">
+                    {/* Header with status badge and menu */}
+                    <div className="flex items-start justify-between mb-3">
+                      {/* Status Badge */}
+                      <div className="flex-shrink-0">
+                        <Badge className={isPaid(payroll) 
+                          ? "bg-green-500/20 text-green-600 dark:bg-[#27584F]/20 dark:text-[#27584F] dark:border-[#27584F]/30 border-green-500/30 text-xs" 
+                          : "bg-yellow-500/20 text-yellow-600 border-yellow-500/30 text-xs"
+                        }>
+                          {isPaid(payroll) ? 'Paid' : 'Unpaid'}
+                        </Badge>
+                      </div>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu
+                          trigger={
+                            <button 
+                              type="button"
+                              className="p-0.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors"
+                            >
+                              <MoreVertical size={14} className="text-gray-600 dark:text-gray-400 transition-colors" />
+                            </button>
+                          }
+                          align="end"
+                        >
+                        <DropdownMenuContent onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                          <DropdownMenuItem onClick={() => {
+                            setSelectedEmployeeForReceipt({ payroll })
+                          }}>
+                            <DollarSign className="mr-2" size={16} />
+                            View Payslip
+                          </DropdownMenuItem>
+                          {isAdmin && (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                const newStatus = isPaid(payroll) ? 'processed' : 'paid'
+                                handleStatusChange(payroll, newStatus)
+                              }}
+                              className={isPaid(payroll) ? "text-yellow-600" : "text-green-600"}
+                            >
+                              {isPaid(payroll) ? 'Mark as Unpaid' : 'Mark as Paid'}
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+
+                    {/* Employee Name */}
+                    <div className="mb-4">
+                      <h3 className="font-semibold text-base text-gray-900 dark:text-white mb-1">
+                        {payroll.first_name} {payroll.last_name}
+                      </h3>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        {payroll.emp_id || 'N/A'}
+                      </p>
+                    </div>
+
+                    {/* Payment Details */}
+                    <div className="space-y-2.5 mb-4 flex-1">
+                      {/* Net Salary */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-slate-400">
+                          <DollarSign size={14} className="text-gray-600 dark:text-slate-500 flex-shrink-0" />
+                          <span>Net Salary</span>
+                        </div>
+                        <span className="font-semibold text-sm text-gray-900 dark:text-white">
+                          ₹{netSalary.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+
+                      {/* Deductions */}
+                      {totalDeductions > 0 && (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-slate-400">
+                            <span className="text-xs" style={{ color: 'hsl(var(--palette-red-orange))' }}>Deductions</span>
+                          </div>
+                          <span className="text-xs font-medium" style={{ color: 'hsl(var(--palette-red-orange))' }}>
+                            ₹{totalDeductions.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Month */}
+                      <div className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-slate-400">
+                        <Calendar size={14} className="text-gray-600 dark:text-slate-500 flex-shrink-0" />
+                        <span>{getMonthYearLabel()}</span>
+                      </div>
+                    </div>
+
+                    {/* Action Button */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full mt-auto"
+                      onClick={() => setSelectedEmployeeForReceipt({ payroll })}
+                    >
+                      <DollarSign size={14} className="mr-2" />
+                      View Payslip
+                    </Button>
+                  </div>
+                </div>
+              </motion.div>
+            )
+          })}
+        </div>
+      )}
 
       {/* Payment Receipt Modal */}
       {selectedEmployeeForReceipt && selectedEmployeeForReceipt.payroll && (

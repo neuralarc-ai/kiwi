@@ -1,5 +1,5 @@
 import express from 'express';
-import { login, register, registerFirstUser, getUsers } from '../controllers/auth.controller.js';
+import { login, register, registerFirstUser, getUsers, forgotPassword, resetPassword } from '../controllers/auth.controller.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
@@ -9,6 +9,10 @@ console.log('🔓 Auth routes initialized');
 console.log('🔒 /register route is PROTECTED - requires admin/hr_executive authentication');
 
 router.post('/login', login);
+
+// Password reset routes
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
 
 // Registration is now ADMIN ONLY - users must be created by admin through settings
 // This route requires admin or hr_executive authentication

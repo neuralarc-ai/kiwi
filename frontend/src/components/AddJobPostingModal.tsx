@@ -116,6 +116,7 @@ export default function AddJobPostingModal({ isOpen, onClose, onSuccess, job }: 
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder="e.g., Senior Software Engineer"
+              className="placeholder:opacity-40"
               required
             />
           </div>
@@ -171,6 +172,7 @@ export default function AddJobPostingModal({ isOpen, onClose, onSuccess, job }: 
               value={formData.salary_range}
               onChange={(e) => setFormData({ ...formData, salary_range: e.target.value })}
               placeholder="e.g., $50,000 - $70,000"
+              className="placeholder:opacity-40"
             />
           </div>
 
@@ -189,7 +191,7 @@ export default function AddJobPostingModal({ isOpen, onClose, onSuccess, job }: 
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={4}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white dark:bg-gray-700 dark:border-gray-600"
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white dark:bg-gray-700 dark:border-gray-600 placeholder:opacity-40"
               placeholder="Describe the role and responsibilities..."
             />
           </div>
@@ -200,17 +202,17 @@ export default function AddJobPostingModal({ isOpen, onClose, onSuccess, job }: 
               value={formData.requirements}
               onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
               rows={4}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white dark:bg-gray-700 dark:border-gray-600"
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white dark:bg-gray-700 dark:border-gray-600 placeholder:opacity-40"
               placeholder="List the required qualifications and skills..."
             />
           </div>
 
-          <div className="flex gap-3 pt-4">
-            <Button type="submit" disabled={loading} className="flex-1">
-              {loading ? (job ? 'Updating...' : 'Creating...') : (job ? 'Update Job Posting' : 'Create Job Posting')}
-            </Button>
-            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+          <div className="flex gap-3 justify-end pt-4">
+            <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={loading}>
               Cancel
+            </Button>
+            <Button type="submit" size="sm" disabled={loading}>
+              {loading ? (job ? 'Updating...' : 'Creating...') : (job ? 'Update Job Posting' : 'Create Job Posting')}
             </Button>
           </div>
         </form>

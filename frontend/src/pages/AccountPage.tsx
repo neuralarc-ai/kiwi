@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -494,6 +493,7 @@ export default function AccountPage() {
                         value={newEntry.subhead}
                         onChange={(e) => setNewEntry({ ...newEntry, subhead: e.target.value })}
                         placeholder="e.g., Office Rent, Employee Salaries"
+                        className="placeholder:opacity-40"
                       />
                     </div>
 
@@ -508,25 +508,26 @@ export default function AccountPage() {
                         value={newEntry.gstPercentage}
                         onChange={(e) => setNewEntry({ ...newEntry, gstPercentage: e.target.value })}
                         placeholder="0"
+                        className="placeholder:opacity-40"
                       />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="frequency">Frequency</Label>
-                      <Select
+                      <div className="relative">
+                        <select
+                          id="frequency"
                         value={newEntry.frequency}
-                        onValueChange={(value) => setNewEntry({ ...newEntry, frequency: value })}
-                      >
-                        <SelectTrigger id="frequency">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Monthly">Monthly</SelectItem>
-                          <SelectItem value="Quarterly">Quarterly</SelectItem>
-                          <SelectItem value="Yearly">Yearly</SelectItem>
-                          <SelectItem value="One-time">One-time</SelectItem>
-                        </SelectContent>
-                      </Select>
+                          onChange={(e) => setNewEntry({ ...newEntry, frequency: e.target.value })}
+                          className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 pr-8 text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 w-full"
+                        >
+                          <option value="Monthly">Monthly</option>
+                          <option value="Quarterly">Quarterly</option>
+                          <option value="Yearly">Yearly</option>
+                          <option value="One-time">One-time</option>
+                        </select>
+                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" size={16} />
+                      </div>
                     </div>
 
                     <div className="space-y-2">
@@ -539,6 +540,7 @@ export default function AccountPage() {
                         value={newEntry.amount}
                         onChange={(e) => setNewEntry({ ...newEntry, amount: e.target.value })}
                         placeholder="0"
+                        className="placeholder:opacity-40"
                       />
                     </div>
 
@@ -549,6 +551,7 @@ export default function AccountPage() {
                         value={newEntry.remarks}
                         onChange={(e) => setNewEntry({ ...newEntry, remarks: e.target.value })}
                         placeholder="Additional notes or description"
+                        className="placeholder:opacity-40"
                       />
                     </div>
                   </div>
@@ -746,65 +749,65 @@ export default function AccountPage() {
             <div className="space-y-6 py-4">
               <div className="space-y-2">
                 <Label htmlFor="estimate-base-month">Base Month (Source)</Label>
-                <Select
-                  value={estimateBaseMonth.toString()}
-                  onValueChange={(value) => {
-                    setEstimateBaseMonth(parseInt(value))
+                <div className="relative">
+                  <select
+                    id="estimate-base-month"
+                    value={estimateBaseMonth}
+                    onChange={(e) => {
+                      setEstimateBaseMonth(parseInt(e.target.value))
                     setEstimateData(null)
                   }}
+                    className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 pr-8 text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 w-full"
                 >
-                  <SelectTrigger id="estimate-base-month">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
                     {monthNames.map((month, index) => (
-                      <SelectItem key={index} value={(index + 1).toString()}>
+                      <option key={index} value={index + 1}>
                         {month}
-                      </SelectItem>
+                      </option>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </select>
+                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" size={16} />
+                </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="estimate-base-year">Base Year</Label>
-                <Select
-                  value={estimateBaseYear.toString()}
-                  onValueChange={(value) => {
-                    setEstimateBaseYear(parseInt(value))
+                <div className="relative">
+                  <select
+                    id="estimate-base-year"
+                    value={estimateBaseYear}
+                    onChange={(e) => {
+                      setEstimateBaseYear(parseInt(e.target.value))
                     setEstimateData(null)
                   }}
+                    className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 pr-8 text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 w-full"
                 >
-                  <SelectTrigger id="estimate-base-year">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
                     {years.map((year) => (
-                      <SelectItem key={year} value={year.toString()}>
+                      <option key={year} value={year}>
                         {year}
-                      </SelectItem>
+                      </option>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </select>
+                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" size={16} />
+                </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="number-of-months">Number of Future Months</Label>
-                <Select
-                  value={numberOfMonths.toString()}
-                  onValueChange={(value) => setNumberOfMonths(parseInt(value))}
-                >
-                  <SelectTrigger id="number-of-months">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
+                <div className="relative">
+                  <select
+                    id="number-of-months"
+                    value={numberOfMonths}
+                    onChange={(e) => setNumberOfMonths(parseInt(e.target.value))}
+                    className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 pr-8 text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 w-full"
+                  >
                     {Array.from({ length: 12 }, (_, i) => i + 1).map((num) => (
-                      <SelectItem key={num} value={num.toString()}>
+                      <option key={num} value={num}>
                         {num} {num === 1 ? 'month' : 'months'}
-                      </SelectItem>
+                      </option>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </select>
+                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" size={16} />
+                </div>
               </div>
 
               <Button

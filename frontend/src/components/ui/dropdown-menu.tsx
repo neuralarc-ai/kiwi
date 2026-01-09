@@ -34,8 +34,11 @@ export function DropdownMenu({ children, trigger, align = 'end' }: DropdownMenuP
   }
 
   return (
-    <div className="relative" ref={menuRef}>
-      <div onClick={() => setIsOpen(!isOpen)}>
+    <div className="relative" ref={menuRef} onClick={(e) => e.stopPropagation()}>
+      <div onClick={(e) => {
+        e.stopPropagation()
+        setIsOpen(!isOpen)
+      }}>
         {trigger}
       </div>
       <AnimatePresence>
@@ -45,7 +48,8 @@ export function DropdownMenu({ children, trigger, align = 'end' }: DropdownMenuP
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -10 }}
             transition={{ duration: 0.2 }}
-            className={`absolute top-full mt-2 ${alignClasses[align]} z-50 min-w-[180px] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden`}
+            className={`absolute top-full mt-2 ${alignClasses[align]} z-[100] min-w-[180px] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden`}
+            onClick={(e) => e.stopPropagation()}
           >
             {children}
           </motion.div>

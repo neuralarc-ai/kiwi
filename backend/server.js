@@ -39,13 +39,16 @@ app.use((req, res, next) => {
 });
 
 // Middleware
-// CORS configuration - allow frontend from Vercel and local development
+// CORS configuration - allow frontend from Vercel, Cloud Run, and local development
 const allowedOrigins = [
   'https://kiwi-shraddha.vercel.app',
-  'https://kiwi-shraddha.vercel.app/',
+  'https://hr-management-frontend-299314838732.asia-southeast1.run.app',
+  'https://kiwi-frontend-299314838732.asia-south2.run.app', // Cloud Run frontend (asia-south2)
+   'https://kiwi.he2.ai', 
   'http://localhost:5173',
   'http://localhost:3000',
   'http://localhost:8080',
+  'http://localhost:5002', 
   ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [])
 ];
 
@@ -54,14 +57,24 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.some(allowed => origin.startsWith(allowed))) {
+    // Normalize origin by removing trailing slash for comparison
+    const normalizedOrigin = origin.replace(/\/$/, '');
+    
+    // Check if origin matches any allowed origin (with or without trailing slash)
+    const isAllowed = allowedOrigins.some(allowed => {
+      const normalizedAllowed = allowed.replace(/\/$/, '');
+      return normalizedOrigin === normalizedAllowed || normalizedOrigin.startsWith(normalizedAllowed);
+    });
+    
+    if (isAllowed) {
       callback(null, true);
     } else {
       // In development, allow all origins for easier testing
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV === 'production') {
         callback(null, true);
       } else {
         console.warn('⚠️ CORS blocked origin:', origin);
+        console.warn('⚠️ Allowed origins:', allowedOrigins);
         callback(new Error('Not allowed by CORS'));
       }
     }
@@ -76,6 +89,15 @@ app.use(express.urlencoded({ extended: true }));
 // Test database connection and initialize tables
 async function startServer() {
   try {
+    // Check JWT_SECRET configuration
+    if (!process.env.JWT_SECRET) {
+      console.warn('⚠️  WARNING: JWT_SECRET is not set in environment variables!');
+      console.warn('⚠️  Using fallback secret. This is NOT secure for production!');
+      console.warn('⚠️  Please set JWT_SECRET in your .env file or environment variables.');
+    } else {
+      console.log('✅ JWT_SECRET is configured');
+    }
+    
     console.log('🔌 Testing database connection...');
     console.log('🔌 Database config:', {
       host: process.env.DB_HOST || 'localhost',

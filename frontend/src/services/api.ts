@@ -66,6 +66,33 @@ export interface Employee {
   hire_date?: string
   profile_photo?: string
   salary?: number | string
+  bank_details_url?: string
+  pan_card_url?: string
+  aadhar_card_url?: string
+  bank_account_no?: string
+  bank_name?: string
+  bank_ifsc?: string
+  bank_verified?: boolean
+  bank_account_holder_name?: string
+  pan_number?: string
+  pan_verified?: boolean
+  pan_name?: string
+  pan_dob?: string
+  aadhar_number?: string
+  aadhar_verified?: boolean
+  aadhar_name?: string
+  aadhar_dob?: string
+  verification_score?: number
+  verification_status?: 'pending' | 'review_required' | 'approved' | 'rejected'
+  verification_flags?: Array<{
+    type: string
+    severity: 'low' | 'medium' | 'high'
+    message: string
+    documents: string[]
+  }>
+  hr_approved?: boolean
+  hr_approved_by?: number
+  hr_approved_at?: string
 }
 
 export interface Payroll {
@@ -233,6 +260,40 @@ class ApiService {
   }
 
   // Auth APIs
+  async forgotPassword(email: string): Promise<{ message: string; resetLink?: string }> {
+    const response = await fetch(`${this.baseURL}/auth/forgot-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || 'Failed to send reset email')
+    }
+
+    return response.json()
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+    const response = await fetch(`${this.baseURL}/auth/reset-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token, newPassword }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || 'Failed to reset password')
+    }
+
+    return response.json()
+  }
+
   async login(email: string, password: string): Promise<LoginResponse> {
     return this.request<LoginResponse>('/auth/login', {
       method: 'POST',
@@ -268,13 +329,6 @@ class ApiService {
     })
   }
 
-  // Legacy register method - now requires token (for backward compatibility)
-  async register(data: { email: string; password: string; role?: string; first_name?: string; last_name?: string; phone?: string; department?: string; position?: string; address?: string }, token?: string): Promise<RegisterResponse> {
-    if (!token) {
-      throw new Error('User registration is now restricted to administrators. Please contact your administrator to create an account.')
-    }
-    return this.createUser(token, data)
-  }
 
   async getUsers(token: string): Promise<Array<{ id: number; email: string; role: string; created_at: string }>> {
     return this.request<Array<{ id: number; email: string; role: string; created_at: string }>>('/auth/users', {
@@ -340,6 +394,150 @@ class ApiService {
     }
 
     return response.json()
+  }
+
+  async uploadBankDetails(id: string | number, file: File, token: string): Promise<any> {
+    const formData = new FormData()
+    formData.append('bank_details', file)
+    
+    const url = `${this.baseURL}/employees/${id}/bank-details`
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || 'Failed to upload bank details')
+    }
+
+    return response.json()
+  }
+
+  async uploadPanCard(id: string | number, file: File, token: string): Promise<any> {
+    const formData = new FormData()
+    formData.append('pan_card', file)
+    
+    const url = `${this.baseURL}/employees/${id}/pan-card`
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || 'Failed to upload PAN card')
+    }
+
+    return response.json()
+  }
+
+  async uploadAadharCard(id: string | number, file: File, token: string): Promise<any> {
+    const formData = new FormData()
+    formData.append('aadhar_card', file)
+    
+    const url = `${this.baseURL}/employees/${id}/aadhar-card`
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || 'Failed to upload Aadhar card')
+    }
+
+    return response.json()
+  }
+
+  // Verification-only endpoints (no employee ID required)
+  async verifyBankDetails(file: File, token: string): Promise<any> {
+    const formData = new FormData()
+    formData.append('bank_details', file)
+    
+    const url = `${this.baseURL}/employees/verify/bank-details`
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || 'Failed to verify bank details')
+    }
+
+    return response.json()
+  }
+
+  async verifyPanCard(file: File, token: string): Promise<any> {
+    const formData = new FormData()
+    formData.append('pan_card', file)
+    
+    const url = `${this.baseURL}/employees/verify/pan-card`
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    })
+
+    const data = await response.json()
+    
+    // Backend now always returns 200, but may have error in response
+    if (data.error && !data.extractedData?.panNumber) {
+      throw new Error(data.error || 'Failed to verify PAN card')
+    }
+
+    return data
+  }
+
+  async verifyAadharCard(file: File, token: string): Promise<any> {
+    try {
+      const formData = new FormData()
+      formData.append('aadhar_card', file)
+      
+      const url = `${this.baseURL}/employees/verify/aadhar-card`
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      })
+
+      // Handle connection errors
+      if (!response.ok && response.status === 0) {
+        throw new Error('Cannot connect to server. Please ensure the backend server is running on port 5002.')
+      }
+
+      const data = await response.json()
+      
+      // Backend now always returns 200, but may have error in response
+      if (data.error && !data.extractedData?.aadharNumber) {
+        throw new Error(data.error || 'Failed to verify Aadhar card')
+      }
+
+      return data
+    } catch (error: any) {
+      // Handle network errors
+      if (error.message?.includes('Failed to fetch') || error.message?.includes('ERR_CONNECTION_REFUSED')) {
+        throw new Error('Cannot connect to server. Please ensure the backend server is running on port 5002.')
+      }
+      throw error
+    }
   }
 
   // Dashboard APIs
@@ -605,6 +803,13 @@ class ApiService {
       method: 'POST',
       headers: this.getAuthHeaders(token),
       body: JSON.stringify(entry),
+    })
+  }
+
+  async deleteAccountingEntry(token: string, id: number): Promise<any> {
+    return this.request<any>(`/accounting/${id}`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(token),
     })
   }
 }

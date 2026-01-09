@@ -166,7 +166,7 @@ export default function EmployeeProfile() {
   }
 
   return (
-    <div className="space-y-6 overflow-x-hidden max-w-full">
+    <div className="w-full space-y-6 overflow-x-hidden">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -192,7 +192,7 @@ export default function EmployeeProfile() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <Card variant="glass">
+          <Card variant="glass" className="max-w-2xl">
           <CardContent className="p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
               {/* Photo */}
@@ -212,25 +212,27 @@ export default function EmployeeProfile() {
 
               {/* Basic Info */}
               <div className="flex-1 min-w-0">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-4">
+                <div className="flex flex-col gap-3 sm:gap-4 mb-4">
                   <div className="min-w-0 flex-1">
                     <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-2 break-words">
                       {employee.first_name} {employee.last_name}
                     </h2>
                     <p className="text-muted-foreground text-sm sm:text-base mb-2">{employee.employee_id}</p>
+                    <div className="flex flex-wrap items-center gap-2">
                     {employee.employee_type && (
                       <Badge className="bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30 text-xs inline-flex items-center gap-1">
                         <Briefcase size={12} />
                         {employee.employee_type}
                       </Badge>
                     )}
-                  </div>
                   <Badge 
                     variant={employee.status === 'active' ? 'success' : 'destructive'}
-                    className="text-sm flex-shrink-0"
+                        className="text-sm"
                   >
                     {employee.status || 'active'}
                   </Badge>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -290,7 +292,7 @@ export default function EmployeeProfile() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <Card variant="glass">
+        <Card variant="glass" className="max-w-2xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base font-semibold">
               <TrendingUp size={18} />
@@ -330,7 +332,7 @@ export default function EmployeeProfile() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
       >
-        <Card variant="glass">
+        <Card variant="glass" className="max-w-2xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base font-semibold">
               <DollarSign size={18} />

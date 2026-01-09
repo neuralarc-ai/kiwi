@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { pool } from '../config/database.js';
 import { validatePassword } from '../utils/passwordValidator.js';
 
@@ -24,11 +25,29 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
+    // Ensure JWT_SECRET is set, use fallback if not configured
+    const jwtSecret = process.env.JWT_SECRET || 'b127e4004408c1a8a1df26d15d9e7be3';
+    
+    if (!jwtSecret) {
+      console.error('❌ JWT_SECRET is not configured!');
+      return res.status(500).json({ message: 'Server configuration error: JWT_SECRET not set' });
+    }
+
+    // Generate JWT token
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
+      jwtSecret,
       { expiresIn: process.env.JWT_EXPIRE || '7d' }
     );
+
+    // Verify token was generated
+    if (!token) {
+      console.error('❌ Token generation failed!');
+      return res.status(500).json({ message: 'Failed to generate authentication token' });
+    }
+
+    console.log('✅ Login successful for user:', user.email);
+    console.log('✅ Token generated successfully (length:', token.length, ')');
 
     res.json({
       token,
@@ -39,8 +58,22 @@ export const login = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('❌ Login error:', error);
+    console.error('❌ Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    
+    // More specific error messages
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(500).json({ message: 'Token generation failed: Invalid JWT configuration' });
+    }
+    
+    res.status(500).json({ 
+      message: 'Server error during login',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
@@ -517,6 +550,121 @@ export const getUsers = async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error('Get users error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Forgot password - generate reset token
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    // Check if user exists
+    const userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    
+    if (userResult.rows.length === 0) {
+      // Don't reveal if email exists or not for security
+      return res.json({ 
+        message: 'If an account with that email exists, a password reset link has been sent.' 
+      });
+    }
+
+    const user = userResult.rows[0];
+
+    // Generate secure random token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1); // Token expires in 1 hour
+
+    // Delete any existing reset tokens for this user
+    await pool.query('DELETE FROM password_reset_tokens WHERE user_id = $1', [user.id]);
+
+    // Save reset token
+    await pool.query(
+      'INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)',
+      [user.id, resetToken, expiresAt]
+    );
+
+    // In production, send email with reset link
+    // For now, we'll return the token in development mode
+    const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
+    
+    console.log('🔐 Password reset token generated for:', email);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔗 Reset link (DEV ONLY):', resetLink);
+    }
+
+    // In production, send email here
+    // await sendPasswordResetEmail(user.email, resetLink);
+
+    res.json({ 
+      message: 'If an account with that email exists, a password reset link has been sent.',
+      // Only return token in development
+      ...(process.env.NODE_ENV === 'development' && { resetLink })
+    });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Reset password with token
+export const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ message: 'Token and new password are required' });
+    }
+
+    // Validate password strength
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({ 
+        message: passwordValidation.errors.join(', '),
+        errors: passwordValidation.errors
+      });
+    }
+
+    // Find valid reset token
+    const tokenResult = await pool.query(
+      `SELECT prt.*, u.id as user_id, u.email 
+       FROM password_reset_tokens prt
+       JOIN users u ON prt.user_id = u.id
+       WHERE prt.token = $1 AND prt.used = FALSE AND prt.expires_at > NOW()`,
+      [token]
+    );
+
+    if (tokenResult.rows.length === 0) {
+      return res.status(400).json({ message: 'Invalid or expired reset token' });
+    }
+
+    const resetTokenData = tokenResult.rows[0];
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update user password
+    await pool.query(
+      'UPDATE users SET password = $1 WHERE id = $2',
+      [hashedPassword, resetTokenData.user_id]
+    );
+
+    // Mark token as used
+    await pool.query(
+      'UPDATE password_reset_tokens SET used = TRUE WHERE token = $1',
+      [token]
+    );
+
+    console.log('✅ Password reset successful for user:', resetTokenData.email);
+
+    res.json({ message: 'Password has been reset successfully. You can now login with your new password.' });
+  } catch (error) {
+    console.error('Reset password error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

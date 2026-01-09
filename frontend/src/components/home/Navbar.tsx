@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion'
 import { Link, useLocation } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
 import { Menu, X } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
@@ -50,9 +49,6 @@ export default function HomeNavbar() {
                 {item.label}
               </Link>
             ))}
-            <Link to="/register">
-              <Button>Sign Up</Button>
-            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -87,9 +83,6 @@ export default function HomeNavbar() {
                 {item.label}
               </Link>
             ))}
-            <Link to="/register" onClick={() => setIsMenuOpen(false)}>
-              <Button className="w-full">Sign Up</Button>
-            </Link>
           </motion.div>
         )}
       </div>

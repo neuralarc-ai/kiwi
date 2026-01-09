@@ -126,7 +126,6 @@ export default function PerformancePage() {
 
   const handleDelete = async (id: number) => {
     if (!token) return
-    if (!confirm('Are you sure you want to delete this performance record?')) return
 
     try {
       await apiService.deletePerformance(id, token)
@@ -232,6 +231,7 @@ export default function PerformancePage() {
                     onChange={(e) => setFormData({ ...formData, performance_percentage: parseFloat(e.target.value) || 0 })}
                     required
                     placeholder="Enter percentage (0-100)"
+                    className="placeholder:opacity-40"
                   />
                 </div>
               </div>

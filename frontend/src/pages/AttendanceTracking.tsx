@@ -949,22 +949,25 @@ export default function AttendanceTracking() {
               )}
               {/* Pagination Controls */}
               {monthlyEmployees.length > employeesPerPage && (
-                <div className="flex items-center justify-between p-4 border-t border-gray-200 dark:border-white/10 bg-gradient-to-r from-white/60 via-white/40 to-white/60 dark:from-gray-800/40 dark:via-gray-800/30 dark:to-gray-800/40">
-                  <div className="text-sm text-muted-foreground">
-                    Showing {startIndex + 1} to {Math.min(endIndex, monthlyEmployees.length)} of {monthlyEmployees.length} employees
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 p-3 sm:p-4 border-t border-gray-200 dark:border-white/10 bg-gradient-to-r from-white/60 via-white/40 to-white/60 dark:from-gray-800/40 dark:via-gray-800/30 dark:to-gray-800/40">
+                  <div className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left whitespace-nowrap">
+                    <span className="hidden sm:inline">Showing </span>
+                    <span>{startIndex + 1}-{Math.min(endIndex, monthlyEmployees.length)}</span>
+                    <span className="hidden sm:inline"> of {monthlyEmployees.length}</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto justify-center">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                       disabled={currentPage === 1}
-                      className="flex items-center gap-1"
+                      className="flex items-center gap-1 text-xs sm:text-sm px-2 sm:px-3 h-8 sm:h-9"
                     >
-                      <ChevronLeft size={16} />
-                      Previous
+                      <ChevronLeft size={14} className="sm:w-4 sm:h-4" />
+                      <span className="hidden sm:inline">Previous</span>
+                      <span className="sm:hidden">Prev</span>
                     </Button>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-0.5 sm:gap-1 overflow-x-auto max-w-[180px] sm:max-w-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                       {Array.from({ length: totalPages }, (_, i) => {
                         const page = i + 1
                         // Show first page, last page, current page, and pages around current
@@ -979,7 +982,7 @@ export default function AttendanceTracking() {
                               variant={currentPage === page ? "default" : "outline"}
                               size="sm"
                               onClick={() => setCurrentPage(page)}
-                              className={`min-w-[40px]`}
+                              className={`min-w-[28px] sm:min-w-[40px] text-xs sm:text-sm px-1 sm:px-2 h-8 sm:h-9`}
                               style={currentPage === page ? { backgroundColor: 'oklch(62% .08 270)' } : undefined}
                             >
                               {page}
@@ -990,7 +993,7 @@ export default function AttendanceTracking() {
                           page === currentPage + 2
                         ) {
                           return (
-                            <span key={page} className="px-2 text-muted-foreground">
+                            <span key={page} className="px-1 sm:px-2 text-muted-foreground text-xs sm:text-sm">
                               ...
                             </span>
                           )
@@ -1003,10 +1006,11 @@ export default function AttendanceTracking() {
                       size="sm"
                       onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                       disabled={currentPage === totalPages}
-                      className="flex items-center gap-1"
+                      className="flex items-center gap-1 text-xs sm:text-sm px-2 sm:px-3 h-8 sm:h-9"
                     >
-                      Next
-                      <ChevronRight size={16} />
+                      <span className="hidden sm:inline">Next</span>
+                      <span className="sm:hidden">Next</span>
+                      <ChevronRight size={14} className="sm:w-4 sm:h-4" />
                     </Button>
                   </div>
                 </div>
@@ -1016,11 +1020,11 @@ export default function AttendanceTracking() {
           
           {/* Legend */}
           <Card variant="glass" className="bg-gradient-to-r from-white/60 via-white/40 to-white/60 dark:from-gray-800/40 dark:via-gray-800/30 dark:to-gray-800/40 border-gray-200 dark:border-white/10">
-            <CardContent className="p-5">
-              <div className="flex flex-wrap items-center justify-center gap-8 text-sm">
-                <div className="flex items-center gap-3 group cursor-pointer">
+            <CardContent className="p-3 sm:p-5">
+              <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-8 text-xs sm:text-sm">
+                <div className="flex items-center gap-1.5 sm:gap-3 group cursor-pointer">
                   <div 
-                    className="w-9 h-9 rounded-lg text-white border flex items-center justify-center text-xs font-bold"
+                    className="w-6 h-6 sm:w-9 sm:h-9 rounded-lg text-white border flex items-center justify-center text-[10px] sm:text-xs font-bold"
                     style={{ 
                       backgroundColor: 'hsl(var(--palette-dark-green))',
                       borderColor: 'hsl(var(--palette-dark-green))'
@@ -1028,11 +1032,11 @@ export default function AttendanceTracking() {
                   >
                     P
                   </div>
-                  <span className="font-semibold text-gray-900 dark:text-white">Present</span>
+                  <span className="font-semibold text-gray-900 dark:text-white text-xs sm:text-sm">Present</span>
                 </div>
-                <div className="flex items-center gap-3 group cursor-pointer">
+                <div className="flex items-center gap-1.5 sm:gap-3 group cursor-pointer">
                   <div 
-                    className="w-9 h-9 rounded-lg text-white border flex items-center justify-center text-xs font-bold"
+                    className="w-6 h-6 sm:w-9 sm:h-9 rounded-lg text-white border flex items-center justify-center text-[10px] sm:text-xs font-bold"
                     style={{ 
                       backgroundColor: 'hsl(var(--palette-red-orange))',
                       borderColor: 'hsl(var(--palette-red-orange))'
@@ -1040,11 +1044,11 @@ export default function AttendanceTracking() {
                   >
                     A
                   </div>
-                  <span className="font-semibold text-gray-900 dark:text-white">Absent</span>
+                  <span className="font-semibold text-gray-900 dark:text-white text-xs sm:text-sm">Absent</span>
                 </div>
-                <div className="flex items-center gap-3 group cursor-pointer">
+                <div className="flex items-center gap-1.5 sm:gap-3 group cursor-pointer">
                   <div 
-                    className="w-9 h-9 rounded-lg text-white border flex items-center justify-center text-xs font-bold"
+                    className="w-6 h-6 sm:w-9 sm:h-9 rounded-lg text-white border flex items-center justify-center text-[10px] sm:text-xs font-bold"
                     style={{ 
                       backgroundColor: 'hsl(var(--palette-yellow))',
                       borderColor: 'hsl(var(--palette-yellow))'
@@ -1052,11 +1056,11 @@ export default function AttendanceTracking() {
                   >
                     L
                   </div>
-                  <span className="font-semibold text-gray-900 dark:text-white">Late</span>
+                  <span className="font-semibold text-gray-900 dark:text-white text-xs sm:text-sm">Late</span>
                 </div>
-                <div className="flex items-center gap-3 group cursor-pointer">
+                <div className="flex items-center gap-1.5 sm:gap-3 group cursor-pointer">
                   <div 
-                    className="w-9 h-9 rounded-lg text-white border flex items-center justify-center text-xs font-bold"
+                    className="w-6 h-6 sm:w-9 sm:h-9 rounded-lg text-white border flex items-center justify-center text-[10px] sm:text-xs font-bold"
                     style={{ 
                       backgroundColor: 'hsl(var(--palette-light-blue))',
                       borderColor: 'hsl(var(--palette-light-blue))'
@@ -1064,13 +1068,13 @@ export default function AttendanceTracking() {
                   >
                     OL
                   </div>
-                  <span className="font-semibold text-gray-900 dark:text-white">On Leave</span>
+                  <span className="font-semibold text-gray-900 dark:text-white text-xs sm:text-sm">On Leave</span>
                 </div>
-                <div className="flex items-center gap-3 group cursor-pointer">
-                  <div className="w-9 h-9 rounded-lg bg-gray-200/60 dark:bg-gray-800/40 border-2 border-gray-300/50 dark:border-white/10 flex items-center justify-center">
-                    <span className="text-[10px] text-gray-500 dark:text-white/40">-</span>
+                <div className="flex items-center gap-1.5 sm:gap-3 group cursor-pointer">
+                  <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-lg bg-gray-200/60 dark:bg-gray-800/40 border-2 border-gray-300/50 dark:border-white/10 flex items-center justify-center">
+                    <span className="text-[8px] sm:text-[10px] text-gray-500 dark:text-white/40">-</span>
                   </div>
-                  <span className="font-semibold text-gray-700 dark:text-white/60">Not Marked</span>
+                  <span className="font-semibold text-gray-700 dark:text-white/60 text-xs sm:text-sm">Not Marked</span>
                 </div>
               </div>
             </CardContent>

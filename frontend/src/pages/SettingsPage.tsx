@@ -322,7 +322,7 @@ export default function SettingsPage() {
                   type="email"
                   value={user?.email || ''}
                   disabled
-                  className="bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
+                  className="bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-80"
                 />
                 <p className="text-xs text-muted-foreground">Email cannot be changed</p>
               </div>
@@ -332,7 +332,7 @@ export default function SettingsPage() {
                   variant="glass"
                   value={user?.role ? user.role.replace('_', ' ').toUpperCase() : ''}
                   disabled
-                  className="bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
+                  className="bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-80"
                 />
                 <p className="text-xs text-muted-foreground">Role cannot be changed</p>
               </div>
@@ -388,6 +388,7 @@ export default function SettingsPage() {
                       value={passwordData.current_password}
                       onChange={(e) => setPasswordData({ ...passwordData, current_password: e.target.value })}
                       placeholder="Enter current password"
+                      className="placeholder:opacity-40"
                       required
                     />
                   </div>
@@ -399,6 +400,7 @@ export default function SettingsPage() {
                       value={passwordData.new_password}
                       onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })}
                       placeholder="Enter new password"
+                      className="placeholder:opacity-40"
                       required
                       minLength={8}
                     />
@@ -414,6 +416,7 @@ export default function SettingsPage() {
                       value={passwordData.confirm_password}
                       onChange={(e) => setPasswordData({ ...passwordData, confirm_password: e.target.value })}
                       placeholder="Confirm new password"
+                      className="placeholder:opacity-40"
                       required
                     />
                   </div>
@@ -485,7 +488,7 @@ export default function SettingsPage() {
                     value={payrollConfig.tds_percentage}
                     onChange={(e) => setPayrollConfig({ ...payrollConfig, tds_percentage: e.target.value })}
                     placeholder="10"
-                    className="w-full max-w-xs"
+                    className="w-full max-w-xs placeholder:opacity-40"
                     required
                   />
                   <p className="text-xs text-muted-foreground">
@@ -502,7 +505,7 @@ export default function SettingsPage() {
                     value={payrollConfig.max_allowed_leaves}
                     onChange={(e) => setPayrollConfig({ ...payrollConfig, max_allowed_leaves: e.target.value })}
                     placeholder="2"
-                    className="w-full max-w-xs"
+                    className="w-full max-w-xs placeholder:opacity-40"
                     required
                   />
                   <p className="text-xs text-muted-foreground">
@@ -520,7 +523,7 @@ export default function SettingsPage() {
                     value={payrollConfig.working_days_per_month}
                     onChange={(e) => setPayrollConfig({ ...payrollConfig, working_days_per_month: e.target.value })}
                     placeholder="30"
-                    className="w-full max-w-xs"
+                    className="w-full max-w-xs placeholder:opacity-40"
                     required
                   />
                   <p className="text-xs text-muted-foreground">
@@ -574,7 +577,7 @@ export default function SettingsPage() {
                       onChange={(e) =>
                         setLeaveAllocations({ ...leaveAllocations, clAllocation: e.target.value })
                       }
-                      className="w-full max-w-xs"
+                      className="w-full max-w-xs placeholder:opacity-50"
                       required
                     />
                     <p className="text-xs text-muted-foreground">
@@ -594,7 +597,7 @@ export default function SettingsPage() {
                       onChange={(e) =>
                         setLeaveAllocations({ ...leaveAllocations, slAllocation: e.target.value })
                       }
-                      className="w-full max-w-xs"
+                      className="w-full max-w-xs placeholder:opacity-50"
                       required
                     />
                     <p className="text-xs text-muted-foreground">
@@ -614,7 +617,7 @@ export default function SettingsPage() {
                       onChange={(e) =>
                         setLeaveAllocations({ ...leaveAllocations, plAllocation: e.target.value })
                       }
-                      className="w-full max-w-xs"
+                      className="w-full max-w-xs placeholder:opacity-50"
                       required
                     />
                     <p className="text-xs text-muted-foreground">
@@ -634,7 +637,7 @@ export default function SettingsPage() {
                       onChange={(e) =>
                         setLeaveAllocations({ ...leaveAllocations, lwpAllocation: e.target.value })
                       }
-                      className="w-full max-w-xs"
+                      className="w-full max-w-xs placeholder:opacity-50"
                       required
                     />
                     <p className="text-xs text-muted-foreground">
@@ -720,6 +723,7 @@ export default function SettingsPage() {
                               variant="glass"
                               type="email"
                               placeholder="user@company.com"
+                              className="placeholder:opacity-40"
                               value={userData.email}
                               onChange={(e) => updateUserField(index, 'email', e.target.value)}
                               required
@@ -732,12 +736,12 @@ export default function SettingsPage() {
                                 id={`userRole-${index}`}
                                 value={userData.role}
                                 onChange={(e) => updateUserField(index, 'role', e.target.value)}
-                                className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 pr-8 text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 w-full h-10 max-w-md"
+                                className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 pr-8 text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 w-full h-10 max-w-md opacity-80"
                                 required
                               >
                                 <option value="admin">Admin</option>
                                 <option value="hr_executive">HR Executive</option>
-                                <option value="employee">Employee</option>
+                                <option value="accountant">Accountant</option>
                               </select>
                               <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" size={16} />
                             </div>
@@ -749,6 +753,7 @@ export default function SettingsPage() {
                               variant="glass"
                               type="password"
                               placeholder="••••••••"
+                              className="placeholder:opacity-40"
                               value={userData.password}
                               onChange={(e) => updateUserField(index, 'password', e.target.value)}
                               required
@@ -765,6 +770,7 @@ export default function SettingsPage() {
                               variant="glass"
                               type="password"
                               placeholder="••••••••"
+                              className="placeholder:opacity-40"
                               value={userData.confirmPassword}
                               onChange={(e) => updateUserField(index, 'confirmPassword', e.target.value)}
                               required

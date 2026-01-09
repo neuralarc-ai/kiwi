@@ -57,10 +57,11 @@ export default function RecruitmentPage() {
   }
 
   const handleDelete = async (id: number) => {
-    if (!token || !confirm('Are you sure you want to delete this job posting?')) return
+    if (!token) return
 
     try {
       await apiService.deleteJobPosting(id, token)
+      toast.success('Job posting deleted successfully')
       fetchJobPostings()
     } catch (error: any) {
       toast.error(error?.message || 'Failed to delete job posting')
@@ -201,7 +202,7 @@ export default function RecruitmentPage() {
           <Input
             variant="glass"
             placeholder="Search job postings..."
-                className="pl-8 h-9 text-sm"
+                className="pl-8 h-9 text-sm placeholder:opacity-40"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
